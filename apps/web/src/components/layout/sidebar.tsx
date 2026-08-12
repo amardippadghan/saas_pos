@@ -1,16 +1,19 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Store, Users, Tags, Package, LayoutDashboard, LogOut, Boxes } from 'lucide-react';
+import { Store, Users, Tags, Package, LayoutDashboard, LogOut, Boxes, Calculator, Receipt, Settings } from 'lucide-react';
 import { fetchApi } from '../../lib/api';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Point of Sale', href: '/dashboard/pos', icon: Calculator },
+  { name: 'Orders & Sales', href: '/dashboard/orders', icon: Receipt },
   { name: 'Branches', href: '/dashboard/branches', icon: Store },
   { name: 'Inventory', href: '/dashboard/inventory', icon: Boxes },
   { name: 'Customers', href: '/dashboard/customers', icon: Users },
   { name: 'Categories', href: '/dashboard/categories', icon: Tags },
   { name: 'Products', href: '/dashboard/products', icon: Package },
+  { name: 'Taxes & Fees', href: '/dashboard/settings/taxes', icon: Settings },
 ];
 
 export function Sidebar() {

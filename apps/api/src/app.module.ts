@@ -10,6 +10,9 @@ import { CustomersModule } from './customers/customers.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { SalesModule } from './sales/sales.module';
+import { TaxesModule } from './taxes/taxes.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [PrismaModule,    AuthModule,
@@ -19,7 +22,10 @@ import { InventoryModule } from './inventory/inventory.module';
     CustomersModule,
     CategoriesModule,
     ProductsModule,
-    InventoryModule
+    InventoryModule,
+    SalesModule,
+    TaxesModule,
+    AnalyticsModule
   ],
   controllers: [AppController],
   providers: [AppService],

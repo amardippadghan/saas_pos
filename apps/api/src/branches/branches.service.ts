@@ -17,13 +17,13 @@ export class BranchesService {
 
   async findAll(organizationId: string) {
     return this.prisma.branch.findMany({
-      where: { organizationId },
+      where: { organizationId, deletedAt: null },
     });
   }
 
   async findOne(id: string, organizationId: string) {
     const branch = await this.prisma.branch.findFirst({
-      where: { id, organizationId },
+      where: { id, organizationId, deletedAt: null },
     });
     
     if (!branch) {
@@ -43,8 +43,9 @@ export class BranchesService {
 
   async remove(id: string, organizationId: string) {
     await this.findOne(id, organizationId);
-    return this.prisma.branch.delete({
+    return this.prisma.branch.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
   }
 }

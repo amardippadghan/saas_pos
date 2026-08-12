@@ -11,6 +11,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '' });
 
   const loadCustomers = async () => {
@@ -32,16 +33,49 @@ export default function CustomersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetchApi('/customers', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-      });
-      setIsModalOpen(false);
-      setFormData({ name: '', email: '', phone: '', address: '' });
+      if (editingId) {
+        await fetchApi(`/customers/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(formData),
+        });
+      } else {
+        await fetchApi('/customers', {
+          method: 'POST',
+          body: JSON.stringify(formData),
+        });
+      }
+      closeModal();
       loadCustomers();
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleEdit = (customer: any) => {
+    setEditingId(customer.id);
+    setFormData({ 
+      name: customer.name, 
+      email: customer.email || '', 
+      phone: customer.phone || '', 
+      address: customer.address || '' 
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this customer?')) return;
+    try {
+      await fetchApi(`/customers/${id}`, { method: 'DELETE' });
+      loadCustomers();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData({ name: '', email: '', phone: '', address: '' });
   };
 
   return (
@@ -51,7 +85,7 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-bold tracking-tight">Customers</h1>
           <p className="text-gray-500">Manage your customer database.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+        <Button onClick={() => { setEditingId(null); setFormData({ name: '', email: '', phone: '', address: '' }); setIsModalOpen(true); }} className="gap-2">
           <Plus size={16} /> Add Customer
         </Button>
       </div>
@@ -79,8 +113,8 @@ export default function CustomersPage() {
                   <TableCell>{customer.phone || '-'}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Edit2 size={16} /></Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600"><Trash2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(customer)}><Edit2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600" onClick={() => handleDelete(customer.id)}><Trash2 size={16} /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -90,7 +124,7 @@ export default function CustomersPage() {
         </Table>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Customer">
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={editingId ? "Edit Customer" : "Add New Customer"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input 
             label="Full Name" 
@@ -119,8 +153,8 @@ export default function CustomersPage() {
             onChange={e => setFormData({...formData, address: e.target.value})}
           />
           <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-800">
-            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Customer</Button>
+            <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>
+            <Button type="submit">{editingId ? 'Save Changes' : 'Create Customer'}</Button>
           </div>
         </form>
       </Modal>

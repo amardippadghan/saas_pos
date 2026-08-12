@@ -11,6 +11,7 @@ export default function BranchesPage() {
   const [branches, setBranches] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', address: '', phone: '' });
 
   const loadBranches = async () => {
@@ -32,16 +33,44 @@ export default function BranchesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetchApi('/branches', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-      });
-      setIsModalOpen(false);
-      setFormData({ name: '', address: '', phone: '' });
+      if (editingId) {
+        await fetchApi(`/branches/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(formData),
+        });
+      } else {
+        await fetchApi('/branches', {
+          method: 'POST',
+          body: JSON.stringify(formData),
+        });
+      }
+      closeModal();
       loadBranches();
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleEdit = (branch: any) => {
+    setEditingId(branch.id);
+    setFormData({ name: branch.name, address: branch.address || '', phone: branch.phone || '' });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this branch?')) return;
+    try {
+      await fetchApi(`/branches/${id}`, { method: 'DELETE' });
+      loadBranches();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData({ name: '', address: '', phone: '' });
   };
 
   return (
@@ -51,7 +80,7 @@ export default function BranchesPage() {
           <h1 className="text-2xl font-bold tracking-tight">Branches</h1>
           <p className="text-gray-500">Manage your organization's physical locations.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="gap-2">
+        <Button onClick={() => { setEditingId(null); setFormData({ name: '', address: '', phone: '' }); setIsModalOpen(true); }} className="gap-2">
           <Plus size={16} /> Add Branch
         </Button>
       </div>
@@ -79,8 +108,8 @@ export default function BranchesPage() {
                   <TableCell>{branch.phone || '-'}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Edit2 size={16} /></Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600"><Trash2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(branch)}><Edit2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600" onClick={() => handleDelete(branch.id)}><Trash2 size={16} /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -90,7 +119,7 @@ export default function BranchesPage() {
         </Table>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Branch">
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={editingId ? "Edit Branch" : "Add New Branch"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input 
             label="Branch Name" 
@@ -112,8 +141,8 @@ export default function BranchesPage() {
             onChange={e => setFormData({...formData, phone: e.target.value})}
           />
           <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-800">
-            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Branch</Button>
+            <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>
+            <Button type="submit">{editingId ? 'Save Changes' : 'Create Branch'}</Button>
           </div>
         </form>
       </Modal>

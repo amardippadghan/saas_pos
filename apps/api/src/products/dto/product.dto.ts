@@ -28,6 +28,11 @@ export class CreateProductDto {
   variants!: CreateProductVariantDto[];
 }
 
+export class UpdateProductVariantDto extends CreateProductVariantDto {
+  @ApiProperty({ required: false })
+  id?: string;
+}
+
 export class UpdateProductDto {
   @ApiProperty({ required: false })
   name?: string;
@@ -37,4 +42,7 @@ export class UpdateProductDto {
 
   @ApiProperty({ required: false })
   categoryId?: string;
+
+  @ApiProperty({ type: [UpdateProductVariantDto], required: false })
+  variants?: UpdateProductVariantDto[];
 }

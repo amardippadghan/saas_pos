@@ -208,6 +208,7 @@ model Sale {
   customerId     String?
   subtotal       Decimal  @db.Decimal(10, 2)
   taxAmount      Decimal  @db.Decimal(10, 2)
+  taxBreakdown   Json?    // Stores the snapshot of taxes applied at time of sale
   discountAmount Decimal  @db.Decimal(10, 2)
   grandTotal     Decimal  @db.Decimal(10, 2)
   status         SaleStatus @default(COMPLETED)
@@ -275,6 +276,21 @@ model Receipt {
   createdAt     DateTime @default(now())
 
   sale Sale @relation(fields: [saleId], references: [id])
+}
+
+// -----------------------------------------------------------------------------
+// SETTINGS & TAXES
+// -----------------------------------------------------------------------------
+
+model TaxRule {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String   // e.g. "CGST", "Convenience Fee"
+  type           String   // "PERCENTAGE" or "FIXED"
+  value          Decimal  @db.Decimal(10, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 // -----------------------------------------------------------------------------

@@ -17,14 +17,14 @@ export class CustomersService {
 
   async findAll(organizationId: string) {
     return this.prisma.customer.findMany({
-      where: { organizationId },
+      where: { organizationId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findOne(id: string, organizationId: string) {
     const customer = await this.prisma.customer.findFirst({
-      where: { id, organizationId },
+      where: { id, organizationId, deletedAt: null },
     });
     
     if (!customer) {
@@ -44,8 +44,9 @@ export class CustomersService {
 
   async remove(id: string, organizationId: string) {
     await this.findOne(id, organizationId);
-    return this.prisma.customer.delete({
+    return this.prisma.customer.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
   }
 }

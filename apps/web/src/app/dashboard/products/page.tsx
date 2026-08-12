@@ -12,13 +12,14 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Form State
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [variants, setVariants] = useState([{ name: '', sku: '', price: 0, costPrice: 0 }]);
+  const [variants, setVariants] = useState<any[]>([{ name: '', sku: '', price: 0, costPrice: 0 }]);
 
   const loadData = async () => {
     try {
@@ -57,27 +58,68 @@ export default function ProductsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await fetchApi('/products', {
-        method: 'POST',
-        body: JSON.stringify({
-          name,
-          description,
-          categoryId: categoryId || undefined,
-          variants: variants.map(v => ({
-            ...v,
-            price: Number(v.price),
-            costPrice: v.costPrice ? Number(v.costPrice) : undefined
-          }))
-        }),
-      });
-      setIsModalOpen(false);
-      
-      // Reset
-      setName('');
-      setDescription('');
-      setCategoryId('');
+      const payload = {
+        name,
+        description,
+        categoryId: categoryId || undefined,
+        variants: variants.map(v => ({
+          ...v,
+          price: Number(v.price),
+          costPrice: v.costPrice ? Number(v.costPrice) : undefined
+        }))
+      };
+
+      if (editingId) {
+        await fetchApi(`/products/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await fetchApi('/products', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }
+      closeModal();
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleEdit = (product: any) => {
+    setEditingId(product.id);
+    setName(product.name);
+    setDescription(product.description || '');
+    setCategoryId(product.categoryId || '');
+    
+    if (product.variants && product.variants.length > 0) {
+      setVariants(product.variants.map((v: any) => ({
+        id: v.id,
+        name: v.name === 'Default' ? '' : v.name,
+        sku: v.sku,
+        price: v.sellingPrice,
+        costPrice: v.costPrice
+      })));
+    } else {
       setVariants([{ name: '', sku: '', price: 0, costPrice: 0 }]);
-      
+    }
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setName('');
+    setDescription('');
+    setCategoryId('');
+    setVariants([{ name: '', sku: '', price: 0, costPrice: 0 }]);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this product? This will also remove its variants.')) return;
+    try {
+      await fetchApi(`/products/${id}`, { method: 'DELETE' });
       loadData();
     } catch (err) {
       console.error(err);
@@ -132,8 +174,8 @@ export default function ProductsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Edit2 size={16} /></Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600"><Trash2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(product)}><Edit2 size={16} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600" onClick={() => handleDelete(product.id)}><Trash2 size={16} /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -143,7 +185,7 @@ export default function ProductsPage() {
         </Table>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Product">
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={editingId ? "Edit Product" : "Add New Product"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input 
@@ -226,8 +268,8 @@ export default function ProductsPage() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 mt-6 border-t dark:border-gray-800">
-            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Product</Button>
+            <Button type="button" variant="ghost" onClick={closeModal}>Cancel</Button>
+            <Button type="submit">{editingId ? "Save Changes" : "Create Product"}</Button>
           </div>
         </form>
       </Modal>

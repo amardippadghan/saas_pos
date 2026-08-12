@@ -32,9 +32,11 @@ export class ProductsService {
 
   async findAll(organizationId: string) {
     return this.prisma.product.findMany({
-      where: { organizationId },
+      where: { organizationId, deletedAt: null },
       include: {
-        variants: true,
+        variants: {
+          where: { deletedAt: null }
+        },
         category: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -43,9 +45,11 @@ export class ProductsService {
 
   async findOne(id: string, organizationId: string) {
     const product = await this.prisma.product.findFirst({
-      where: { id, organizationId },
+      where: { id, organizationId, deletedAt: null },
       include: {
-        variants: true,
+        variants: {
+          where: { deletedAt: null }
+        },
         category: true,
       },
     });
@@ -59,20 +63,85 @@ export class ProductsService {
 
   async update(id: string, updateProductDto: UpdateProductDto, organizationId: string) {
     await this.findOne(id, organizationId);
-    return this.prisma.product.update({
-      where: { id },
-      data: updateProductDto,
-      include: {
-        variants: true,
-        category: true,
+    
+    const { variants, ...productData } = updateProductDto;
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update the base product
+      const updatedProduct = await tx.product.update({
+        where: { id },
+        data: productData,
+      });
+
+      // 2. Handle variants if provided
+      if (variants) {
+        const existingVariants = await tx.productVariant.findMany({
+          where: { productId: id, deletedAt: null }
+        });
+        
+        const existingIds = existingVariants.map(v => v.id);
+        const incomingIds = variants.map(v => v.id).filter(id => id !== undefined) as string[];
+
+        // Soft delete variants that are not in the incoming list
+        const idsToDelete = existingIds.filter(id => !incomingIds.includes(id));
+        if (idsToDelete.length > 0) {
+          await tx.productVariant.updateMany({
+            where: { id: { in: idsToDelete } },
+            data: { deletedAt: new Date() }
+          });
+        }
+
+        // Upsert incoming variants
+        for (const variant of variants) {
+          if (variant.id && existingIds.includes(variant.id)) {
+            // Update existing
+            await tx.productVariant.update({
+              where: { id: variant.id },
+              data: {
+                name: variant.name || 'Default',
+                sku: variant.sku,
+                sellingPrice: variant.price,
+                costPrice: variant.costPrice || 0,
+              }
+            });
+          } else {
+            // Create new
+            await tx.productVariant.create({
+              data: {
+                productId: id,
+                name: variant.name || 'Default',
+                sku: variant.sku,
+                sellingPrice: variant.price,
+                costPrice: variant.costPrice || 0,
+              }
+            });
+          }
+        }
       }
+
+      // Return fully updated product
+      return tx.product.findUnique({
+        where: { id },
+        include: {
+          variants: { where: { deletedAt: null } },
+          category: true
+        }
+      });
     });
   }
 
   async remove(id: string, organizationId: string) {
     await this.findOne(id, organizationId);
-    return this.prisma.product.delete({
+    
+    // We should also soft delete the variants
+    await this.prisma.productVariant.updateMany({
+      where: { productId: id },
+      data: { deletedAt: new Date() }
+    });
+
+    return this.prisma.product.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
   }
 }
