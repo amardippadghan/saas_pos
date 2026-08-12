@@ -1,0 +1,294 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// BASE MODELS (Tenant & Branch scoped)
+// -----------------------------------------------------------------------------
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  branches  Branch[]
+  users     UserRole[]
+  customers Customer[]
+  products  Product[]
+  categories Category[]
+}
+
+model Branch {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  address        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userRoles      UserRole[]
+  inventories    Inventory[]
+  sales          Sale[]
+}
+
+// -----------------------------------------------------------------------------
+// AUTH & USERS
+// -----------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  roles        UserRole[]
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String
+  permissions String[] // e.g., ["sale:create", "inventory:adjust"]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userRoles   UserRole[]
+}
+
+model UserRole {
+  id             String   @id @default(uuid())
+  userId         String
+  roleId         String
+  organizationId String
+  branchId       String?  // If null, applies to all branches in the organization
+
+  user         User         @relation(fields: [userId], references: [id])
+  role         Role         @relation(fields: [roleId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  branch       Branch?      @relation(fields: [branchId], references: [id])
+
+  @@unique([userId, roleId, organizationId, branchId])
+}
+
+// -----------------------------------------------------------------------------
+// BUSINESS MODELS
+// -----------------------------------------------------------------------------
+
+model Customer {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  sales          Sale[]
+}
+
+model Category {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  products       Product[]
+}
+
+model Product {
+  id             String   @id @default(uuid())
+  organizationId String
+  categoryId     String?
+  name           String
+  description    String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  category       Category?        @relation(fields: [categoryId], references: [id])
+  variants       ProductVariant[]
+}
+
+model ProductVariant {
+  id           String   @id @default(uuid())
+  productId    String
+  name         String   // e.g. "Default", "Large", "Red"
+  sku          String?
+  barcode      String?
+  costPrice    Decimal  @db.Decimal(10, 2)
+  sellingPrice Decimal  @db.Decimal(10, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  product      Product                @relation(fields: [productId], references: [id])
+  inventories  Inventory[]
+  saleItems    SaleItem[]
+}
+
+// -----------------------------------------------------------------------------
+// INVENTORY
+// -----------------------------------------------------------------------------
+
+model Inventory {
+  id               String   @id @default(uuid())
+  branchId         String
+  productVariantId String
+  quantity         Int      @default(0)
+  minStockLevel    Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  branch         Branch         @relation(fields: [branchId], references: [id])
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+  transactions   InventoryTransaction[]
+
+  @@unique([branchId, productVariantId])
+}
+
+model InventoryTransaction {
+  id               String   @id @default(uuid())
+  inventoryId      String
+  type             TransactionType
+  quantityBefore   Int
+  quantityChange   Int
+  quantityAfter    Int
+  reason           String?
+  referenceType    String?  // e.g., "SALE", "RETURN", "ADJUSTMENT"
+  referenceId      String?
+  createdByUserId  String?
+  createdAt        DateTime @default(now())
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id])
+}
+
+enum TransactionType {
+  SALE
+  PURCHASE
+  ADJUSTMENT
+  RETURN
+  TRANSFER
+  OPENING_STOCK
+}
+
+// -----------------------------------------------------------------------------
+// SALES & PAYMENTS
+// -----------------------------------------------------------------------------
+
+model Sale {
+  id             String   @id @default(uuid())
+  organizationId String
+  branchId       String
+  customerId     String?
+  subtotal       Decimal  @db.Decimal(10, 2)
+  taxAmount      Decimal  @db.Decimal(10, 2)
+  discountAmount Decimal  @db.Decimal(10, 2)
+  grandTotal     Decimal  @db.Decimal(10, 2)
+  status         SaleStatus @default(COMPLETED)
+  createdByUserId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  branch       Branch      @relation(fields: [branchId], references: [id])
+  customer     Customer?   @relation(fields: [customerId], references: [id])
+  items        SaleItem[]
+  payments     Payment[]
+  receipts     Receipt[]
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+model SaleItem {
+  id               String   @id @default(uuid())
+  saleId           String
+  productVariantId String
+  quantity         Int
+  unitPrice        Decimal  @db.Decimal(10, 2)
+  subtotal         Decimal  @db.Decimal(10, 2)
+  createdAt        DateTime @default(now())
+
+  sale           Sale           @relation(fields: [saleId], references: [id])
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  saleId          String
+  amount          Decimal  @db.Decimal(10, 2)
+  method          String   // e.g., CASH, CARD, STRIPE
+  status          PaymentStatus @default(COMPLETED)
+  transactionId   String?  // External provider reference
+  provider        String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// -----------------------------------------------------------------------------
+// RECEIPTS
+// -----------------------------------------------------------------------------
+
+model Receipt {
+  id            String   @id @default(uuid())
+  saleId        String
+  receiptNumber String   @unique
+  url           String?  // S3 URL for PDF
+  createdAt     DateTime @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id])
+}
+
+// -----------------------------------------------------------------------------
+// AUDIT & NOTIFICATIONS
+// -----------------------------------------------------------------------------
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  action         String
+  entityType     String
+  entityId       String
+  metadata       Json?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+}
