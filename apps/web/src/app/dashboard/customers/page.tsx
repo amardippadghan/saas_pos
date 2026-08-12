@@ -5,9 +5,11 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Modal } from '../../../components/ui/modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function CustomersPage() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -107,12 +109,13 @@ export default function CustomersPage() {
               <TableRow><TableCell colSpan={4} className="text-center text-gray-500">No customers found.</TableCell></TableRow>
             ) : (
               customers.map((customer) => (
-                <TableRow key={customer.id}>
+                <TableRow key={customer.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => router.push(`/dashboard/customers/${customer.id}`)}>
                   <TableCell className="font-medium">{customer.name}</TableCell>
                   <TableCell>{customer.email || '-'}</TableCell>
                   <TableCell>{customer.phone || '-'}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => router.push(`/dashboard/customers/${customer.id}`)}><Eye size={16} /></Button>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(customer)}><Edit2 size={16} /></Button>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600" onClick={() => handleDelete(customer.id)}><Trash2 size={16} /></Button>
                     </div>

@@ -6,9 +6,11 @@ import { Input } from '../../../components/ui/input';
 import { Select } from '../../../components/ui/select';
 import { Modal } from '../../../components/ui/modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Eye } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function ProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -155,7 +157,7 @@ export default function ProductsPage() {
               <TableRow><TableCell colSpan={4} className="text-center text-gray-500">No products found.</TableCell></TableRow>
             ) : (
               products.map((product) => (
-                <TableRow key={product.id}>
+                <TableRow key={product.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => router.push(`/dashboard/products/${product.id}`)}>
                   <TableCell className="font-medium">
                     {product.name}
                     {product.description && <span className="block text-xs text-gray-500">{product.description}</span>}
@@ -173,7 +175,8 @@ export default function ProductsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => router.push(`/dashboard/products/${product.id}`)}><Eye size={16} /></Button>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleEdit(product)}><Edit2 size={16} /></Button>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600" onClick={() => handleDelete(product.id)}><Trash2 size={16} /></Button>
                     </div>
