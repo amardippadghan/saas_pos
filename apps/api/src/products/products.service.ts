@@ -16,7 +16,10 @@ export class ProductsService {
         categoryId,
         variants: {
           create: variants.map(variant => ({
-            ...variant,
+            name: variant.name || 'Default',
+            sku: variant.sku,
+            sellingPrice: variant.price,
+            costPrice: variant.costPrice || 0,
           })),
         },
       },

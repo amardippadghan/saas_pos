@@ -37,6 +37,11 @@ export class PermissionsGuard implements CanActivate {
 
     const userPermissions = orgRole.role.permissions || [];
     
+    // Admin override
+    if (userPermissions.includes('*')) {
+      return true;
+    }
+
     // Check if the user has ALL required permissions
     const hasPermission = requiredPermissions.every(permission => userPermissions.includes(permission));
     

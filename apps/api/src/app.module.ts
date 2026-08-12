@@ -9,6 +9,7 @@ import { BranchesModule } from './branches/branches.module';
 import { CustomersModule } from './customers/customers.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ProductsModule } from './products/products.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [PrismaModule,    AuthModule,
@@ -17,7 +18,8 @@ import { ProductsModule } from './products/products.module';
     BranchesModule,
     CustomersModule,
     CategoriesModule,
-    ProductsModule
+    ProductsModule,
+    InventoryModule
   ],
   controllers: [AppController],
   providers: [AppService],
