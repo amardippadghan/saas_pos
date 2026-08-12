@@ -48,7 +48,14 @@ export class ProductsService {
       where: { id, organizationId, deletedAt: null },
       include: {
         variants: {
-          where: { deletedAt: null }
+          where: { deletedAt: null },
+          include: {
+            inventories: {
+              include: {
+                branch: true
+              }
+            }
+          }
         },
         category: true,
       },

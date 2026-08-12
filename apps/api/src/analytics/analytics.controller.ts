@@ -16,7 +16,7 @@ export class AnalyticsController {
   @Get('dashboard')
   @RequirePermissions('view_reports')
   async getDashboardMetrics(@Request() req: any) {
-    const orgId = req.headers['x-organization-id'];
+    const organizationId = req.headers['x-organization-id'];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

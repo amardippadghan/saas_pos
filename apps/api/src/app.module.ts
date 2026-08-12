@@ -13,6 +13,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { SalesModule } from './sales/sales.module';
 import { TaxesModule } from './taxes/taxes.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [PrismaModule,    AuthModule,
@@ -25,7 +26,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
     InventoryModule,
     SalesModule,
     TaxesModule,
-    AnalyticsModule
+    AnalyticsModule,
+    SearchModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -25,6 +25,12 @@ export class CustomersService {
   async findOne(id: string, organizationId: string) {
     const customer = await this.prisma.customer.findFirst({
       where: { id, organizationId, deletedAt: null },
+      include: {
+        sales: {
+          include: { receipts: true },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
     });
     
     if (!customer) {

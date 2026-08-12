@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, Param } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { SalesService } from './sales.service';
 import { CheckoutDto } from './dto/sales.dto';
@@ -19,6 +19,13 @@ export class SalesController {
   findAll(@Request() req: any) {
     const orgId = req.headers['x-organization-id'];
     return this.salesService.findAll(orgId);
+  }
+
+  @Get(':id')
+  @RequirePermissions('view_sales')
+  async findOne(@Param('id') id: string, @Request() req: any) {
+    const orgId = req.headers['x-organization-id'];
+    return this.salesService.findOne(id, orgId);
   }
 
   @Post('checkout')

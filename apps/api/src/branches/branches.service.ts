@@ -24,6 +24,11 @@ export class BranchesService {
   async findOne(id: string, organizationId: string) {
     const branch = await this.prisma.branch.findFirst({
       where: { id, organizationId, deletedAt: null },
+      include: {
+        _count: {
+          select: { sales: true, inventories: true }
+        }
+      }
     });
     
     if (!branch) {

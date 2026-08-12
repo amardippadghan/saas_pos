@@ -18,6 +18,33 @@ export class SalesService {
     });
   }
 
+  async findOne(id: string, organizationId: string) {
+    const sale = await this.prisma.sale.findFirst({
+      where: { id, organizationId },
+      include: {
+        customer: true,
+        branch: true,
+        receipts: true,
+        items: {
+          include: {
+            productVariant: {
+              include: {
+                product: true
+              }
+            }
+          }
+        },
+        payments: true
+      }
+    });
+
+    if (!sale) {
+      throw new NotFoundException(`Sale not found`);
+    }
+
+    return sale;
+  }
+
   async processCheckout(dto: CheckoutDto, organizationId: string, userId: string) {
     const { branchId, customerId, items, paymentMethod, discountAmount = 0 } = dto;
 
