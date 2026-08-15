@@ -30,17 +30,43 @@ export class ProductsService {
     });
   }
 
-  async findAll(organizationId: string) {
-    return this.prisma.product.findMany({
-      where: { organizationId, deletedAt: null },
+  async findAll(organizationId: string, params: { search?: string, categoryId?: string, cursor?: string, limit?: number } = {}) {
+    const { search, categoryId, cursor, limit = 20 } = params;
+
+    const where: any = { organizationId, deletedAt: null };
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+    if (categoryId && categoryId !== 'all') {
+      where.categoryId = categoryId;
+    }
+
+    const items = await this.prisma.product.findMany({
+      where,
+      take: limit + 1,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       include: {
         variants: {
           where: { deletedAt: null }
         },
         category: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { createdAt: 'desc' },
+        { id: 'desc' }
+      ],
     });
+
+    let nextCursor: string | null = null;
+    if (items.length > limit) {
+      const nextItem = items.pop();
+      nextCursor = nextItem!.id;
+    }
+
+    return {
+      data: items,
+      nextCursor,
+    };
   }
 
   async findOne(id: string, organizationId: string) {

@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,9 +23,10 @@ export class CustomersController {
 
   @Get()
   @RequirePermissions('view_customers')
-  findAll(@Request() req: any) {
+  @ApiQuery({ name: 'search', required: false, type: String })
+  findAll(@Request() req: any, @Query('search') search?: string) {
     const orgId = req.headers['x-organization-id'];
-    return this.customersService.findAll(orgId);
+    return this.customersService.findAll(orgId, search);
   }
 
   @Get(':id')

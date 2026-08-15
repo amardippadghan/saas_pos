@@ -27,10 +27,10 @@ export default function ProductsPage() {
     try {
       setLoading(true);
       const [productsData, categoriesData] = await Promise.all([
-        fetchApi('/products'),
+        fetchApi('/products?limit=100'),
         fetchApi('/categories')
       ]);
-      setProducts(productsData);
+      setProducts(productsData.data || []);
       setCategories(categoriesData);
     } catch (err) {
       console.error(err);
@@ -151,12 +151,13 @@ export default function ProductsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {loading && (
               <TableRow><TableCell colSpan={4} className="text-center">Loading...</TableCell></TableRow>
-            ) : products.length === 0 ? (
+            )}
+            {!loading && products.length === 0 && (
               <TableRow><TableCell colSpan={4} className="text-center text-gray-500">No products found.</TableCell></TableRow>
-            ) : (
-              products.map((product) => (
+            )}
+            {!loading && products.length > 0 && products?.map((product) => (
                 <TableRow key={product.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => router.push(`/dashboard/products/${product.id}`)}>
                   <TableCell className="font-medium">
                     {product.name}
@@ -183,7 +184,7 @@ export default function ProductsPage() {
                   </TableCell>
                 </TableRow>
               ))
-            )}
+            }
           </TableBody>
         </Table>
       </div>

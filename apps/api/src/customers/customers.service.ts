@@ -15,10 +15,21 @@ export class CustomersService {
     });
   }
 
-  async findAll(organizationId: string) {
+  async findAll(organizationId: string, search?: string) {
     return this.prisma.customer.findMany({
-      where: { organizationId, deletedAt: null },
+      where: { 
+        organizationId, 
+        deletedAt: null,
+        ...(search ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search, mode: 'insensitive' } },
+          ]
+        } : {})
+      },
       orderBy: { createdAt: 'desc' },
+      take: 20, // limit to 20 for dropdown performance
     });
   }
 

@@ -6,7 +6,9 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "postinstall": "prisma generate",
+    "db:seed": "prisma db seed"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
@@ -17,7 +19,6 @@
     "apps/*",
     "packages/*"
   ],
-  "packageManager": "pnpm@8.15.5",
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcrypt": "^6.0.0"

@@ -12,8 +12,10 @@ export function Header() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -27,6 +29,9 @@ export function Header() {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowResults(false);
+      }
+      if (userRef.current && !userRef.current.contains(e.target as Node)) {
+        setIsUserDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -109,11 +114,34 @@ export function Header() {
           )}
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 py-1.5 px-3 rounded-full">
+      <div className="flex items-center gap-4 relative" ref={userRef}>
+        <button 
+          onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors py-1.5 px-3 rounded-full"
+        >
           <User size={16} />
           {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
-        </div>
+        </button>
+
+        {isUserDropdownOpen && user && (
+          <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-xl shadow-xl z-50 overflow-hidden p-2">
+            <div className="px-4 py-3 border-b dark:border-gray-800 mb-2">
+              <p className="font-bold text-gray-900 dark:text-white">{user.firstName} {user.lastName}</p>
+              <p className="text-sm text-gray-500">{user.email}</p>
+              {user.role && <p className="text-xs mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full inline-block font-medium">{user.role}</p>}
+            </div>
+            
+            <button 
+              onClick={() => {
+                localStorage.removeItem('token');
+                router.push('/login');
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

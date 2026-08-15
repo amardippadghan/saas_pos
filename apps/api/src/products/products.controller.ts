@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
@@ -23,9 +23,20 @@ export class ProductsController {
 
   @Get()
   @RequirePermissions('view_products')
-  findAll(@Request() req: any) {
+  findAll(
+    @Request() req: any,
+    @Query('search') search?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string
+  ) {
     const orgId = req.headers['x-organization-id'];
-    return this.productsService.findAll(orgId);
+    return this.productsService.findAll(orgId, {
+      search,
+      categoryId,
+      cursor,
+      limit: limit ? parseInt(limit, 10) : 20
+    });
   }
 
   @Get(':id')
