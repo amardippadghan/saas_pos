@@ -1,6 +1,7 @@
 export class LoginDto {
   email!: string;
   password!: string;
+  keepMeSignedIn?: boolean;
 }
 
 export class RegisterDto {

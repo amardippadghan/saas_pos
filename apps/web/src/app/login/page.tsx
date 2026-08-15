@@ -8,6 +8,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [keepMeSignedIn, setKeepMeSignedIn] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +20,7 @@ export default function LoginPage() {
     try {
       const data = await fetchApi('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, keepMeSignedIn }),
       });
       
       // Token is now set as an HttpOnly cookie by the backend.
@@ -72,6 +73,21 @@ export default function LoginPage() {
               />
             </div>
           </div>
+          
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              checked={keepMeSignedIn}
+              onChange={(e) => setKeepMeSignedIn(e.target.checked)}
+            />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+              Keep me signed in
+            </label>
+          </div>
+
           <div>
             <button
               type="submit"

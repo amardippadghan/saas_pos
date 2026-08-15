@@ -1,7 +1,6 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
-export async function fetchApi(endpoint: string, options: RequestInit = {}) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+export async function fetchApi(endpoint: string, options: RequestInit = {}): Promise<any> {
   const orgId = typeof window !== 'undefined' ? localStorage.getItem('organization_id') : null;
 
   const headers: Record<string, string> = {
@@ -16,16 +15,40 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     headers['x-organization-id'] = orgId;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  let response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
     credentials: 'include', // Ensures cookies are sent and received
   });
+
+  if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
+    // Attempt to refresh token
+    const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    if (refreshResponse.ok) {
+      // Retry original request
+      response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+        credentials: 'include',
+      });
+    } else {
+      // Refresh failed, user needs to login again
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || 'API request failed');
   }
 
-  return response.json();
+  // Handle empty responses
+  const text = await response.text();
+  return text ? JSON.parse(text) : {};
 }
