@@ -14,6 +14,7 @@ import { SalesModule } from './sales/sales.module';
 import { TaxesModule } from './taxes/taxes.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { SearchModule } from './search/search.module';
+import { PaymentGatewaysModule } from './payment-gateways/payment-gateways.module';
 
 @Module({
   imports: [PrismaModule,    AuthModule,
@@ -27,7 +28,8 @@ import { SearchModule } from './search/search.module';
     SalesModule,
     TaxesModule,
     AnalyticsModule,
-    SearchModule
+    SearchModule,
+    PaymentGatewaysModule
   ],
   controllers: [AppController],
   providers: [AppService],

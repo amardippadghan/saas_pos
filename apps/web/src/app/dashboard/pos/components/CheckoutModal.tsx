@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import { Banknote, CreditCard, Smartphone, Download } from 'lucide-react';
 import { Modal } from '../../../../components/ui/modal';
 import { Button } from '../../../../components/ui/button';
@@ -22,6 +22,34 @@ export default function CheckoutModal({
   receipt, closeReceipt
 }: CheckoutModalProps) {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
+  const [paymentIntent, setPaymentIntent] = useState<any>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  // When a receipt is generated, if the payment method is UPI/CARD, intercept and show Gateway
+  useEffect(() => {
+    if (receipt && (paymentMethod === 'UPI' || paymentMethod === 'CARD') && !paymentIntent && !paymentConfirmed) {
+      initiateGateway();
+    } else if (receipt && paymentMethod === 'CASH') {
+      setPaymentConfirmed(true);
+    }
+  }, [receipt, paymentMethod, paymentIntent, paymentConfirmed]);
+
+  const initiateGateway = async () => {
+    setIsInitiatingPayment(true);
+    try {
+      const { fetchApi } = await import('../../../../lib/api');
+      const intent = await fetchApi('/payments/intent', {
+        method: 'POST',
+        body: JSON.stringify({ saleId: receipt.saleId, method: paymentMethod })
+      });
+      setPaymentIntent(intent);
+    } catch (err: any) {
+      console.error(err);
+      alert('Payment Gateway Error: ' + err.message + '\n\nPlease configure Razorpay/PhonePe in Settings first.');
+    } finally {
+      setIsInitiatingPayment(false);
+    }
+  };
 
   const generatePDF = async () => {
     setIsGeneratingPdf(true);
@@ -85,11 +113,39 @@ export default function CheckoutModal({
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-12 text-lg" disabled={checkoutLoading}>
-            {checkoutLoading ? 'Processing...' : 'Complete Payment'}
+          <Button type="submit" className="w-full h-12 text-lg" disabled={checkoutLoading || isInitiatingPayment}>
+            {checkoutLoading || isInitiatingPayment ? 'Processing...' : 'Complete Payment'}
           </Button>
         </form>
-      ) : (
+      ) : !paymentConfirmed && paymentIntent ? (
+        <div className="text-center space-y-6 py-6">
+          <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Smartphone size={32} />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold">Pay via {paymentIntent.provider}</h3>
+            <p className="text-gray-500 mt-2">Scan QR or complete payment in the popup window.</p>
+          </div>
+          
+          <div className="p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800">
+            <p className="font-mono text-sm text-gray-500 mb-2">Order ID: {paymentIntent.orderId}</p>
+            <p className="text-3xl font-bold mb-4">₹{paymentIntent.amount.toFixed(2)}</p>
+            {/* Mock QR Code area */}
+            <div className="w-48 h-48 bg-white mx-auto border shadow-sm rounded-lg flex items-center justify-center p-2 mb-4">
+               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=mock@upi&pn=POS&am=${paymentIntent.amount}&cu=INR`} alt="UPI QR" className="w-full h-full object-contain opacity-70" />
+            </div>
+            <p className="text-xs text-gray-400">Waiting for payment confirmation via webhook...</p>
+          </div>
+
+          <Button 
+            onClick={() => setPaymentConfirmed(true)} 
+            className="w-full bg-green-600 hover:bg-green-700"
+          >
+            Simulate Payment Success
+          </Button>
+          <Button onClick={closeReceipt} className="w-full" variant="ghost">Cancel</Button>
+        </div>
+      ) : paymentConfirmed && receipt ? (
         <div className="text-center space-y-6 py-6">
           <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
@@ -162,7 +218,7 @@ export default function CheckoutModal({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </Modal>
   );
 }
