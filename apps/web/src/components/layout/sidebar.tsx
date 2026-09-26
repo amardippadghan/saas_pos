@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Store, Users, Tags, Package, LayoutDashboard, LogOut, Boxes, Calculator, Receipt, Settings, CreditCard, X } from 'lucide-react';
 import { fetchApi } from '../../lib/api';
+import { useEffect, useState } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -20,6 +21,19 @@ const navigation = [
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [organizationName, setOrganizationName] = useState<string>('POS SaaS');
+
+  useEffect(() => {
+    const loadOrg = async () => {
+      try {
+        const userData = await fetchApi('/auth/me');
+        if (userData?.roles?.[0]?.organization?.name) {
+          setOrganizationName(userData.roles[0].organization.name);
+        }
+      } catch (e) {}
+    };
+    loadOrg();
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -48,8 +62,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         }`}
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-gray-800">
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Store className="text-blue-500" /> POS SaaS
+          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 overflow-hidden max-w-[calc(100%-2rem)]">
+            <Store className="text-blue-500 shrink-0" size={24} /> 
+            <span className="truncate" title={organizationName}>{organizationName}</span>
           </h1>
           <button 
             onClick={onClose}
