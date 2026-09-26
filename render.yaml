@@ -3,7 +3,7 @@ services:
     name: saas-api
     env: node
     plan: free # Force the free tier so it doesn't ask for a credit card
-    buildCommand: npm install && npx prisma generate && npx turbo run build --filter=api
+    buildCommand: npm install --include=dev && npx prisma generate && npx turbo run build --filter=api
     startCommand: cd apps/api && npm run start:prod
     envVars:
       - key: DATABASE_URL
