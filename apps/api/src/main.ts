@@ -8,7 +8,9 @@ async function bootstrap() {
   
   // Enable CORS with credentials for cookies to work across origins
   app.enableCors({
-    origin: 'http://localhost:3000', // Assuming frontend runs on 3000
+    origin: (origin, callback) => {
+      callback(null, true);
+    },
     credentials: true,
   });
 
