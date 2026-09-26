@@ -128,7 +128,14 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
           className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors py-1.5 px-3 rounded-full"
         >
           <User size={16} />
-          <span className="hidden sm:inline">{user ? `${user.firstName} ${user.lastName}` : 'Loading...'}</span>
+          <div className="flex flex-col items-start text-left">
+            <span className="hidden sm:inline leading-none mb-0.5">{user ? `${user.firstName} ${user.lastName}` : 'Loading...'}</span>
+            {user?.roles?.[0]?.organization?.name && (
+              <span className="hidden sm:inline text-[10px] uppercase font-bold tracking-wider text-blue-500 leading-none">
+                {user.roles[0].organization.name}
+              </span>
+            )}
+          </div>
         </button>
 
         {isUserDropdownOpen && user && (
@@ -136,8 +143,21 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
             <div className="px-4 py-3 border-b dark:border-gray-800 mb-2">
               <p className="font-bold text-gray-900 dark:text-white">{user.firstName} {user.lastName}</p>
               <p className="text-sm text-gray-500">{user.email}</p>
-              {user.role && <p className="text-xs mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full inline-block font-medium">{user.role}</p>}
+              <div className="flex items-center gap-2 mt-2">
+                {user.roles?.[0]?.role?.name && <p className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full inline-block font-medium">{user.roles[0].role.name}</p>}
+                {user.roles?.[0]?.organization?.name && <p className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full inline-block font-medium">{user.roles[0].organization.name}</p>}
+              </div>
             </div>
+
+            <button
+              onClick={() => {
+                setIsUserDropdownOpen(false);
+                router.push('/dashboard/organization');
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors mb-1"
+            >
+              Organization Settings
+            </button>
             
             <button 
               onClick={() => {

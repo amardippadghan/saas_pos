@@ -76,4 +76,11 @@ export class OrganizationsService {
       }
     });
   }
+
+  async update(id: string, name: string) {
+    return this.prisma.organization.update({
+      where: { id },
+      data: { name }
+    });
+  }
 }

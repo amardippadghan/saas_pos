@@ -34,6 +34,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         roles: {
           include: {
             role: true,
+            organization: true,
           }
         }
       }

@@ -85,7 +85,7 @@ export default function CheckoutModal({
           
           <div className="space-y-3">
             <label className="text-sm font-medium">Select Payment Method</label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('CASH')}
@@ -94,6 +94,7 @@ export default function CheckoutModal({
                 <Banknote size={24} />
                 <span className="font-bold">Cash</span>
               </button>
+              {/* Feature flagged: Not live yet
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('CARD')}
@@ -110,6 +111,7 @@ export default function CheckoutModal({
                 <Smartphone size={24} />
                 <span className="font-bold">UPI</span>
               </button>
+              */}
             </div>
           </div>
 

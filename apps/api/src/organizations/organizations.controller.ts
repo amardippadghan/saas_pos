@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Patch } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -24,5 +24,10 @@ export class OrganizationsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.organizationsService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body('name') name: string) {
+    return this.organizationsService.update(id, name);
   }
 }
