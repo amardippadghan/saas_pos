@@ -24,7 +24,10 @@ export default function LoginPage() {
       });
       
       // Token is now set as an HttpOnly cookie by the backend.
-      // We only store the organization_id in localStorage for context.
+      // For Safari fallback (ITP block), we also store the access_token in localStorage.
+      if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
+      }
       
       // Optionally fetch organizations and set default here
       const orgs = await fetchApi('/organizations');

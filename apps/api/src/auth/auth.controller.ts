@@ -69,7 +69,7 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
-    return { message: 'Tokens refreshed' };
+    return { message: 'Tokens refreshed', access_token: tokens.access_token };
   }
 
   @Post('logout')

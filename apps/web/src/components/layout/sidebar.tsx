@@ -42,6 +42,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
       // Ignore errors on logout
     }
     localStorage.removeItem('organization_id');
+    localStorage.removeItem('access_token');
     router.push('/login');
   };
 

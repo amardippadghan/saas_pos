@@ -14,6 +14,11 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
   if (orgId) {
     headers['x-organization-id'] = orgId;
   }
+  
+  const fallbackToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  if (fallbackToken && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${fallbackToken}`;
+  }
 
   let response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
@@ -29,6 +34,11 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}): Pro
     });
 
     if (refreshResponse.ok) {
+      const refreshData = await refreshResponse.json().catch(() => ({}));
+      if (refreshData.access_token && typeof window !== 'undefined') {
+        localStorage.setItem('access_token', refreshData.access_token);
+        headers['Authorization'] = `Bearer ${refreshData.access_token}`;
+      }
       // Retry original request
       response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
