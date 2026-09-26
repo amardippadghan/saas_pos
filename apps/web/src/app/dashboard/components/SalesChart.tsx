@@ -29,9 +29,9 @@ export default function SalesChart() {
   const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    // Load dropdown options once
-    fetchApi('/categories').then(setCategories).catch(() => {});
-    fetchApi('/products').then(setProducts).catch(() => {});
+    // Load dropdown options once safely handling both array and paginated {data: []} responses
+    fetchApi('/categories').then(res => setCategories(Array.isArray(res) ? res : res?.data || [])).catch(() => {});
+    fetchApi('/products').then(res => setProducts(Array.isArray(res) ? res : res?.data || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
