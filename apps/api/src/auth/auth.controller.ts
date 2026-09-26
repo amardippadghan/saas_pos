@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Request, Res, Req } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Request, Res, Req, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Response, Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
@@ -48,7 +48,7 @@ export class AuthController {
   async refreshTokens(@Req() req: ExpressRequest, @Res({ passthrough: true }) res: Response) {
     const refresh_token = req.cookies?.['refresh_token'];
     if (!refresh_token) {
-      return res.status(HttpStatus.UNAUTHORIZED).json({ message: 'Refresh token missing' });
+      throw new UnauthorizedException('Refresh token missing');
     }
 
     const tokens = await this.authService.refreshTokens(refresh_token);
