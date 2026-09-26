@@ -7,7 +7,7 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "postinstall": "prisma generate",
+    "postinstall": "npx prisma generate",
     "db:seed": "prisma db seed"
   },
   "devDependencies": {
