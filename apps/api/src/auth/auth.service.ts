@@ -131,6 +131,35 @@ export class AuthService {
       },
     });
 
+    // Automatically create a default organization and branch for the new user
+    const org = await this.prisma.organization.create({
+      data: {
+        name: `${registerDto.firstName}'s Organization`,
+        branches: {
+          create: [{ name: 'Main Branch' }]
+        }
+      },
+      include: { branches: true }
+    });
+
+    // Ensure Admin role exists
+    let role = await this.prisma.role.findFirst({ where: { name: 'Admin' } });
+    if (!role) {
+      role = await this.prisma.role.create({
+        data: { name: 'Admin', permissions: ['*'] }
+      });
+    }
+
+    // Assign the new user to this organization as Admin
+    await this.prisma.userRole.create({
+      data: {
+        userId: user.id,
+        roleId: role.id,
+        organizationId: org.id,
+        branchId: org.branches[0].id
+      }
+    });
+
     const { passwordHash: _, ...result } = user;
     return result;
   }
