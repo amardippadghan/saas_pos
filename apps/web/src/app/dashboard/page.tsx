@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { fetchApi } from '../../lib/api';
 import { Activity, DollarSign, Users, Package, TrendingUp } from 'lucide-react';
 import { Card } from '../../components/ui/card';
+import SalesChart from './components/SalesChart';
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<any>(null);
@@ -101,12 +102,7 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
-      
-      {/* Chart Placeholder */}
-      <Card className="p-6 h-80 flex flex-col justify-center items-center text-gray-400 border-dashed">
-        <Activity size={48} className="mb-4 opacity-20" />
-        <p>Sales trend charts will appear here</p>
-      </Card>
+      <SalesChart />
     </div>
   );
 }
