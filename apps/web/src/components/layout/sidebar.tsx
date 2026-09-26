@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Store, Users, Tags, Package, LayoutDashboard, LogOut, Boxes, Calculator, Receipt, Settings, CreditCard } from 'lucide-react';
+import { Store, Users, Tags, Package, LayoutDashboard, LogOut, Boxes, Calculator, Receipt, Settings, CreditCard, X } from 'lucide-react';
 import { fetchApi } from '../../lib/api';
 
 const navigation = [
@@ -17,7 +17,7 @@ const navigation = [
   { name: 'Payment Gateways', href: '/dashboard/settings/payments', icon: CreditCard },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -32,41 +32,68 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col h-screen border-r border-gray-800">
-      <div className="h-16 flex items-center px-6 border-b border-gray-800">
-        <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-          <Store className="text-blue-500" /> POS SaaS
-        </h1>
-      </div>
-      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                isActive 
-                  ? 'bg-blue-600 text-white font-medium' 
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
-              }`}
-            >
-              <Icon size={20} />
-              {item.name}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="p-4 border-t border-gray-800">
-        <button 
-          onClick={handleSignOut}
-          className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <LogOut size={20} />
-          Sign out
-        </button>
-      </div>
-    </aside>
+    <>
+      {/* Mobile overlay backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col h-screen border-r border-gray-800 transition-transform duration-300 md:relative md:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="h-16 flex items-center justify-between px-6 border-b border-gray-800">
+          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <Store className="text-blue-500" /> POS SaaS
+          </h1>
+          <button 
+            onClick={onClose}
+            className="md:hidden text-gray-400 hover:text-white"
+          >
+            <X size={24} />
+          </button>
+        </div>
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => {
+                  // Close sidebar on mobile when navigating
+                  if (window.innerWidth < 768) {
+                    onClose();
+                  }
+                }}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                  isActive 
+                    ? 'bg-blue-600 text-white font-medium' 
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <Icon size={20} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 border-t border-gray-800">
+          <button 
+            onClick={handleSignOut}
+            className="flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <LogOut size={20} />
+            Sign out
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

@@ -1,10 +1,10 @@
 'use client';
-import { User, Search, Loader2 } from 'lucide-react';
+import { User, Search, Loader2, Menu } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi } from '../../lib/api';
 
-export function Header() {
+export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const [user, setUser] = useState<any>(null);
   
   const router = useRouter();
@@ -67,15 +67,23 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 bg-white dark:bg-gray-900 border-b dark:border-gray-800 flex items-center justify-between px-8 shadow-sm">
-      <div className="flex-1 flex items-center">
+    <header className="h-16 bg-white dark:bg-gray-900 border-b dark:border-gray-800 flex items-center justify-between px-4 md:px-8 shadow-sm">
+      <div className="flex-1 flex items-center gap-4">
+        {/* Hamburger Menu for Mobile */}
+        <button 
+          onClick={onMenuClick}
+          className="md:hidden text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        >
+          <Menu size={24} />
+        </button>
+
         {/* Global Search Bar */}
-        <div ref={searchRef} className="relative w-full max-w-md">
+        <div ref={searchRef} className="relative w-full max-w-md hidden sm:block">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
-              placeholder="Search products, customers, orders (Press / to focus)"
+              placeholder="Search products, customers, orders..."
               className="w-full pl-10 pr-10 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 outline-none text-black dark:text-white transition-all text-sm"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -120,7 +128,7 @@ export function Header() {
           className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors py-1.5 px-3 rounded-full"
         >
           <User size={16} />
-          {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
+          <span className="hidden sm:inline">{user ? `${user.firstName} ${user.lastName}` : 'Loading...'}</span>
         </button>
 
         {isUserDropdownOpen && user && (

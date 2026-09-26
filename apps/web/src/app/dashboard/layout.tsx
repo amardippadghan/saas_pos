@@ -10,6 +10,7 @@ import { Header } from '../../components/layout/header';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -29,10 +30,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        <Header />
-        <div className="flex-1 p-8 overflow-y-auto">
+      <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <main className="flex-1 flex flex-col h-screen overflow-hidden w-full relative">
+        <Header onMenuClick={() => setIsMobileMenuOpen(true)} />
+        <div className="flex-1 p-4 md:p-8 overflow-y-auto w-full">
           {children}
         </div>
       </main>
