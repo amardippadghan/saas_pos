@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchApi } from '../../lib/api';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [keepMeSignedIn, setKeepMeSignedIn] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -18,24 +19,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await fetchApi('/auth/login', {
+      // Assuming you have an auth/register endpoint in the backend
+      await fetchApi('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, keepMeSignedIn }),
+        body: JSON.stringify({ email, password, firstName, lastName }),
       });
       
-      // Token is now set as an HttpOnly cookie by the backend.
-      // We only store the organization_id in localStorage for context.
-      
-      // Optionally fetch organizations and set default here
-      const orgs = await fetchApi('/organizations');
-
-      if (orgs.length > 0) {
-        localStorage.setItem('organization_id', orgs[0].id);
-      }
-
-      router.push('/dashboard');
+      // Auto-login or redirect to login
+      router.push('/login');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -46,12 +39,32 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded shadow-lg">
         <div>
           <h2 className="text-3xl font-extrabold text-center text-gray-900 dark:text-white">
-            Sign in to POS SaaS
+            Create an Account
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && <div className="text-red-500 text-sm text-center">{error}</div>}
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
+              <input
+                type="text"
+                required
+                className="w-full px-3 py-2 mt-1 border rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white text-black border-gray-300"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
+              <input
+                type="text"
+                required
+                className="w-full px-3 py-2 mt-1 border rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white text-black border-gray-300"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email address</label>
               <input
@@ -74,31 +87,17 @@ export default function LoginPage() {
             </div>
           </div>
           
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              checked={keepMeSignedIn}
-              onChange={(e) => setKeepMeSignedIn(e.target.checked)}
-            />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-              Keep me signed in
-            </label>
-          </div>
-
           <div>
             <button
               type="submit"
               disabled={loading}
               className="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Registering...' : 'Register'}
             </button>
           </div>
           <div className="text-center mt-4">
-             <a href="/register" className="text-sm text-blue-600 hover:underline">Don't have an account? Register</a>
+             <a href="/login" className="text-sm text-blue-600 hover:underline">Already have an account? Sign in</a>
           </div>
         </form>
       </div>
