@@ -63,8 +63,10 @@ export class AnalyticsController {
     @Query('endDate') endDateStr?: string,
     @Query('categoryId') categoryId?: string,
     @Query('productId') productId?: string,
+    @Query('tzOffset') tzOffsetStr?: string,
   ) {
     const organizationId = req.headers['x-organization-id'];
+    const tzOffset = Number(tzOffsetStr) || 0;
 
     const today = new Date();
     today.setHours(23, 59, 59, 999);
@@ -120,7 +122,9 @@ export class AnalyticsController {
     });
 
     const grouped = saleItems.reduce((acc, item) => {
-      const dateStr = item.sale.createdAt.toISOString().split('T')[0];
+      // Adjust date to user's local timezone before extracting YYYY-MM-DD
+      const localDate = new Date(item.sale.createdAt.getTime() - tzOffset * 60000);
+      const dateStr = localDate.toISOString().split('T')[0];
       if (!acc[dateStr]) acc[dateStr] = 0;
       acc[dateStr] += Number(item.subtotal) || 0;
       return acc;

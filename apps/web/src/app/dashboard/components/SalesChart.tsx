@@ -46,6 +46,8 @@ export default function SalesChart() {
     try {
       const params = new URLSearchParams();
       params.append('timeRange', timeRange);
+      params.append('tzOffset', new Date().getTimezoneOffset().toString());
+      
       if (categoryId) params.append('categoryId', categoryId);
       if (productId) params.append('productId', productId);
       if (timeRange === 'custom') {
