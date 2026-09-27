@@ -213,15 +213,15 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ sale }) => {
           </View>
 
           {sale.items?.map((item: any, idx: number) => {
-            const variantName = item.productVariant?.name !== 'Default' ? ` - ${item.productVariant?.name}` : '';
+            const variantName = item.productVariant?.name !== 'Default' ? ` - ₹{item.productVariant?.name}` : '';
             const name = `${item.productVariant?.product?.name || 'Item'}${variantName}`;
             return (
               <React.Fragment key={idx}>
                 <View style={styles.tableRow}>
                   <Text style={styles.col1}>{name}</Text>
                   <Text style={styles.col2}>{item.quantity}</Text>
-                  <Text style={styles.col3}>${Number(item.unitPrice).toFixed(2)}</Text>
-                  <Text style={styles.col4}>${Number(item.subtotal).toFixed(2)}</Text>
+                  <Text style={styles.col3}>₹{Number(item.unitPrice).toFixed(2)}</Text>
+                  <Text style={styles.col4}>₹{Number(item.subtotal).toFixed(2)}</Text>
                 </View>
               </React.Fragment>
             );
@@ -233,7 +233,7 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ sale }) => {
           <View style={styles.summaryBox}>
             <View style={styles.summaryRow}>
               <Text style={styles.detailLabel}>Subtotal</Text>
-              <Text>${Number(sale.subtotal).toFixed(2)}</Text>
+              <Text>₹{Number(sale.subtotal).toFixed(2)}</Text>
             </View>
 
             {sale.taxBreakdown && Array.isArray(sale.taxBreakdown) ? (
@@ -241,27 +241,27 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ sale }) => {
                 <React.Fragment key={`tax-${idx}`}>
                   <View style={styles.summaryRow}>
                     <Text style={styles.detailLabel}>{tax.name} {tax.type === 'PERCENTAGE' ? `(${tax.value}%)` : ''}</Text>
-                    <Text>${Number(tax.amountCalculated).toFixed(2)}</Text>
+                    <Text>₹{Number(tax.amountCalculated).toFixed(2)}</Text>
                   </View>
                 </React.Fragment>
               ))
             ) : (
               <View style={styles.summaryRow}>
                 <Text style={styles.detailLabel}>Taxes</Text>
-                <Text>${Number(sale.taxAmount).toFixed(2)}</Text>
+                <Text>₹{Number(sale.taxAmount).toFixed(2)}</Text>
               </View>
             )}
 
             {Number(sale.discountAmount) > 0 && (
               <View style={styles.summaryRow}>
                 <Text style={styles.detailLabel}>Discount</Text>
-                <Text>-${Number(sale.discountAmount).toFixed(2)}</Text>
+                <Text>-₹{Number(sale.discountAmount).toFixed(2)}</Text>
               </View>
             )}
 
             <View style={styles.grandTotalRow}>
               <Text style={styles.grandTotalText}>Total</Text>
-              <Text style={styles.grandTotalText}>${Number(sale.grandTotal).toFixed(2)}</Text>
+              <Text style={styles.grandTotalText}>₹{Number(sale.grandTotal).toFixed(2)}</Text>
             </View>
             
             <View style={{ marginTop: 10 }}>
@@ -270,7 +270,7 @@ export const InvoicePDF: React.FC<InvoicePDFProps> = ({ sale }) => {
                 <React.Fragment key={`pay-${idx}`}>
                   <View style={styles.summaryRow}>
                     <Text style={{ fontSize: 9, color: '#6b7280' }}>{payment.method} ({new Date(payment.createdAt).toLocaleDateString()})</Text>
-                    <Text style={{ fontSize: 9 }}>${Number(payment.amount).toFixed(2)}</Text>
+                    <Text style={{ fontSize: 9 }}>₹{Number(payment.amount).toFixed(2)}</Text>
                   </View>
                 </React.Fragment>
               ))}

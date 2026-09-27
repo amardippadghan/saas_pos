@@ -78,7 +78,7 @@ export default function OrdersPage() {
                       {sale.status}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right font-bold">${Number(sale.grandTotal).toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-bold">₹{Number(sale.grandTotal).toFixed(2)}</TableCell>
                   <TableCell>
                     <div onClick={e => e.stopPropagation()}>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => router.push(`/dashboard/orders/${sale.id}`)}>

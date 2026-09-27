@@ -42,14 +42,14 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
-              <h3 className="text-2xl font-bold mt-1">${Number(metrics?.revenue?.today || 0).toFixed(2)}</h3>
+              <h3 className="text-2xl font-bold mt-1">₹{Number(metrics?.revenue?.today || 0).toFixed(2)}</h3>
             </div>
             <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
               <DollarSign size={24} />
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
-            <span className="text-gray-500">Total Lifetime: ${Number(metrics?.revenue?.total || 0).toFixed(2)}</span>
+            <span className="text-gray-500">Total Lifetime: ₹{Number(metrics?.revenue?.total || 0).toFixed(2)}</span>
           </div>
         </Card>
 

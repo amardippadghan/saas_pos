@@ -121,12 +121,12 @@ export default function TaxesPage() {
                     </span>
                   </TableCell>
                   <TableCell className="font-medium">
-                    {tax.type === 'PERCENTAGE' ? `${Number(tax.value)}%` : `$${Number(tax.value).toFixed(2)}`}
+                    {tax.type === 'PERCENTAGE' ? `${Number(tax.value)}%` : `₹${Number(tax.value).toFixed(2)}`}
                   </TableCell>
                   <TableCell>
                     <button 
                       onClick={() => toggleActive(tax)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${tax.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                      className={`px-3 py-1 rounded-full text-xs font-bold ₹{tax.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
                     >
                       {tax.isActive ? 'Active' : 'Inactive'}
                     </button>
@@ -159,11 +159,11 @@ export default function TaxesPage() {
             onChange={e => setFormData({...formData, type: e.target.value})}
             options={[
               { label: 'Percentage (%)', value: 'PERCENTAGE' },
-              { label: 'Fixed Amount ($)', value: 'FIXED' }
+              { label: 'Fixed Amount (₹)', value: 'FIXED' }
             ]}
           />
           <Input 
-            label={formData.type === 'PERCENTAGE' ? "Percentage Value (%)" : "Fixed Amount ($)"}
+            label={formData.type === 'PERCENTAGE' ? "Percentage Value (%)" : "Fixed Amount (₹)"}
             type="number"
             step="0.01"
             min="0"

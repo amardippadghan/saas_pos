@@ -68,9 +68,9 @@ export default function OrderViewPage() {
                     {item.productVariant?.name !== 'Default' && (
                       <p className="text-xs text-gray-500">{item.productVariant?.name} (SKU: {item.productVariant?.sku})</p>
                     )}
-                    <p className="text-xs text-gray-500">{item.quantity} x ${Number(item.unitPrice).toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">{item.quantity} x ₹{Number(item.unitPrice).toFixed(2)}</p>
                   </div>
-                  <div className="font-bold">${Number(item.subtotal).toFixed(2)}</div>
+                  <div className="font-bold">₹{Number(item.subtotal).toFixed(2)}</div>
                 </div>
               ))}
             </div>
@@ -81,30 +81,30 @@ export default function OrderViewPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                 <span>Subtotal</span>
-                <span>${Number(sale.subtotal).toFixed(2)}</span>
+                <span>₹{Number(sale.subtotal).toFixed(2)}</span>
               </div>
               
               {sale.taxBreakdown && Array.isArray(sale.taxBreakdown) && sale.taxBreakdown.map((tax: any, idx: number) => (
                 <div key={idx} className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                   <span>{tax.name} {tax.type === 'PERCENTAGE' ? `(${tax.value}%)` : ''}</span>
-                  <span>+${Number(tax.amountCalculated).toFixed(2)}</span>
+                  <span>+₹{Number(tax.amountCalculated).toFixed(2)}</span>
                 </div>
               ))}
               {(!sale.taxBreakdown || sale.taxBreakdown.length === 0) && (
                 <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                   <span>Taxes/Fees</span>
-                  <span>${Number(sale.taxAmount).toFixed(2)}</span>
+                  <span>₹{Number(sale.taxAmount).toFixed(2)}</span>
                 </div>
               )}
 
               <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                 <span>Discount</span>
-                <span className="text-red-500">-${Number(sale.discountAmount).toFixed(2)}</span>
+                <span className="text-red-500">-₹{Number(sale.discountAmount).toFixed(2)}</span>
               </div>
 
               <div className="flex justify-between text-xl font-bold pt-4 border-t dark:border-gray-800 mt-4">
                 <span>Grand Total</span>
-                <span>${Number(sale.grandTotal).toFixed(2)}</span>
+                <span>₹{Number(sale.grandTotal).toFixed(2)}</span>
               </div>
             </div>
             
@@ -115,7 +115,7 @@ export default function OrderViewPage() {
                   <div className="flex justify-between items-center">
                     <span className="font-bold">{payment.method}</span>
                     <span className="font-bold text-green-600 dark:text-green-400">
-                      ${Number(payment.amount).toFixed(2)} ({payment.status})
+                      ₹{Number(payment.amount).toFixed(2)} ({payment.status})
                     </span>
                   </div>
                   {/* Rich Metadata Section */}

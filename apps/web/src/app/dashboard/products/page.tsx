@@ -170,7 +170,7 @@ export default function ProductsPage() {
                     <div className="flex flex-wrap gap-1">
                       {product.variants?.map((v: any) => (
                         <span key={v.id} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                          {v.name || 'Default'} - ${v.price}
+                          {v.name || 'Default'} - ₹{v.price}
                         </span>
                       ))}
                     </div>
@@ -251,7 +251,7 @@ export default function ProductsPage() {
                       onChange={e => updateVariant(index, 'sku', e.target.value)}
                     />
                     <Input 
-                      label="Price ($)" 
+                      label="Price (₹)" 
                       type="number"
                       step="0.01"
                       required
@@ -259,7 +259,7 @@ export default function ProductsPage() {
                       onChange={e => updateVariant(index, 'price', e.target.value)}
                     />
                     <Input 
-                      label="Cost Price ($)" 
+                      label="Cost Price (₹)" 
                       type="number"
                       step="0.01"
                       value={variant.costPrice || ''}

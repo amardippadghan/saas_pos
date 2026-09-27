@@ -51,7 +51,7 @@ export default function Cart({
                 </button>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-bold text-blue-600">${item.price.toFixed(2)}</span>
+                <span className="font-bold text-blue-600">₹{item.price.toFixed(2)}</span>
                 <div className="flex items-center gap-3 bg-white dark:bg-gray-900 rounded-md border dark:border-gray-700 p-1">
                   <button onClick={() => updateQuantity(item.variantId, -1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"><Minus size={14}/></button>
                   <span className="w-4 text-center text-sm font-medium">{item.quantity}</span>
@@ -72,17 +72,17 @@ export default function Cart({
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Subtotal</span>
-          <span className="font-medium">${subtotal.toFixed(2)}</span>
+          <span className="font-medium">₹{subtotal.toFixed(2)}</span>
         </div>
         {taxBreakdown.map(tax => (
           <div key={tax.id} className="flex justify-between text-sm">
             <span className="text-gray-500">{tax.name} {tax.type === 'PERCENTAGE' ? `(${tax.value}%)` : ''}</span>
-            <span className="font-medium">+${tax.calculatedAmount.toFixed(2)}</span>
+            <span className="font-medium">+₹{tax.calculatedAmount.toFixed(2)}</span>
           </div>
         ))}
         <div className="flex justify-between text-xl font-bold pt-2 border-t dark:border-gray-700">
           <span>Total</span>
-          <span>${grandTotal.toFixed(2)}</span>
+          <span>₹{grandTotal.toFixed(2)}</span>
         </div>
         
         <Button 
@@ -90,7 +90,7 @@ export default function Cart({
           disabled={cart.length === 0 || !selectedBranchId}
           onClick={() => setIsCheckoutOpen(true)}
         >
-          Charge ${grandTotal.toFixed(2)}
+          Charge ₹{grandTotal.toFixed(2)}
         </Button>
       </div>
     </div>

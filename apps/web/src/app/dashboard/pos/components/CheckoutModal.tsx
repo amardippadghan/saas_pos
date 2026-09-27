@@ -134,7 +134,7 @@ export default function CheckoutModal({
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', (response: any) => {
-        setRazorpayError(`Payment failed: ${response.error.description}`);
+        setRazorpayError(`Payment failed: ₹{response.error.description}`);
         setRazorpayLoading(false);
       });
       rzp.open();
@@ -161,16 +161,16 @@ export default function CheckoutModal({
         <form onSubmit={handleFormSubmit} className="space-y-6">
           <div className="text-center space-y-2 mb-6">
             <p className="text-gray-500">Total Amount Due</p>
-            <p className="text-4xl font-extrabold text-gray-900 dark:text-white">${grandTotal.toFixed(2)}</p>
+            <p className="text-4xl font-extrabold text-gray-900 dark:text-white">₹{grandTotal.toFixed(2)}</p>
           </div>
           
           <div className="space-y-3">
             <label className="text-sm font-medium">Select Payment Method</label>
-            <div className={`grid ${razorpayEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+            <div className={`grid ₹{razorpayEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('CASH')}
-                className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ${paymentMethod === 'CASH' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
+                className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ₹{paymentMethod === 'CASH' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
               >
                 <Banknote size={24} />
                 <span className="font-bold">Cash</span>
@@ -180,7 +180,7 @@ export default function CheckoutModal({
                 <button 
                   type="button"
                   onClick={() => setPaymentMethod('RAZORPAY')}
-                  className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ${paymentMethod === 'RAZORPAY' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
+                  className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ₹{paymentMethod === 'RAZORPAY' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22 9.76L14.16 22H9.73L13.58 15.22L10.28 4H14.25L16.47 12.18L22 9.76Z" fill="currentColor"/>
