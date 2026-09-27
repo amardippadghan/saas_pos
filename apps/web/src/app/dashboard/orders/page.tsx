@@ -13,7 +13,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   
   // Pagination states
-  const [page, setPage] = useState(1);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
@@ -23,38 +23,38 @@ export default function OrdersPage() {
   });
 
   useEffect(() => {
-    loadSales(1);
+    loadSales(true);
   }, []);
 
   useEffect(() => {
     if (inView && hasMore && !loading && !loadingMore) {
-      loadSales(page + 1);
+      loadSales(false);
     }
-  }, [inView, hasMore, loading, loadingMore, page]);
+  }, [inView, hasMore, loading, loadingMore, cursor]);
 
-  const loadSales = async (pageNum: number) => {
+  const loadSales = async (reset = false) => {
     try {
-      if (pageNum === 1) setLoading(true);
-      else setLoadingMore(true);
+      if (reset) {
+        setLoading(true);
+        setCursor(null);
+      } else {
+        setLoadingMore(true);
+      }
 
-      const res = await fetchApi(`/sales?page=${pageNum}&limit=20`);
+      const currentCursor = reset ? null : cursor;
+      const cursorParam = currentCursor ? `&cursor=${currentCursor}` : '';
+      const res = await fetchApi(`/sales?limit=20${cursorParam}`);
       
       const newSales = res.data || [];
       
-      if (pageNum === 1) {
+      if (reset) {
         setSales(newSales);
       } else {
         setSales(prev => [...prev, ...newSales]);
       }
       
-      setPage(pageNum);
-      
-      if (res.meta) {
-        setHasMore(pageNum < res.meta.totalPages);
-      } else {
-        // Fallback if meta is missing
-        setHasMore(newSales.length === 20);
-      }
+      setCursor(res.nextCursor || null);
+      setHasMore(!!res.nextCursor);
     } catch (err) {
       console.error(err);
     } finally {

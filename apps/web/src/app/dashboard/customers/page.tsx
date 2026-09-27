@@ -18,7 +18,7 @@ export default function CustomersPage() {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '' });
 
   // Pagination states
-  const [page, setPage] = useState(1);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
@@ -27,28 +27,29 @@ export default function CustomersPage() {
     rootMargin: '100px',
   });
 
-  const loadCustomers = async (pageNum: number) => {
+  const loadCustomers = async (reset = false) => {
     try {
-      if (pageNum === 1) setLoading(true);
-      else setLoadingMore(true);
+      if (reset) {
+        setLoading(true);
+        setCursor(null);
+      } else {
+        setLoadingMore(true);
+      }
 
-      const res = await fetchApi(`/customers?page=${pageNum}&limit=20`);
+      const currentCursor = reset ? null : cursor;
+      const cursorParam = currentCursor ? `&cursor=${currentCursor}` : '';
+      const res = await fetchApi(`/customers?limit=20${cursorParam}`);
       
       const newCustomers = res.data || [];
       
-      if (pageNum === 1) {
+      if (reset) {
         setCustomers(newCustomers);
       } else {
         setCustomers(prev => [...prev, ...newCustomers]);
       }
       
-      setPage(pageNum);
-      
-      if (res.meta) {
-        setHasMore(pageNum < res.meta.totalPages);
-      } else {
-        setHasMore(newCustomers.length === 20);
-      }
+      setCursor(res.nextCursor || null);
+      setHasMore(!!res.nextCursor);
     } catch (err) {
       console.error(err);
     } finally {
@@ -58,14 +59,14 @@ export default function CustomersPage() {
   };
 
   useEffect(() => {
-    loadCustomers(1);
+    loadCustomers(true);
   }, []);
 
   useEffect(() => {
     if (inView && hasMore && !loading && !loadingMore) {
-      loadCustomers(page + 1);
+      loadCustomers(false);
     }
-  }, [inView, hasMore, loading, loadingMore, page]);
+  }, [inView, hasMore, loading, loadingMore, cursor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +83,7 @@ export default function CustomersPage() {
         });
       }
       closeModal();
-      loadCustomers(1);
+      loadCustomers(true);
     } catch (err) {
       console.error(err);
     }
@@ -103,7 +104,7 @@ export default function CustomersPage() {
     if (!window.confirm('Are you sure you want to delete this customer?')) return;
     try {
       await fetchApi(`/customers/${id}`, { method: 'DELETE' });
-      loadCustomers(1);
+      loadCustomers(true);
     } catch (err) {
       console.error(err);
     }

@@ -20,13 +20,12 @@ export class InventoryController {
   getInventory(
     @Query('branchId') branchId: string, 
     @Request() req: any,
-    @Query('page') page?: string,
+    @Query('cursor') cursor?: string,
     @Query('limit') limit?: string
   ) {
     const orgId = req.headers['x-organization-id'];
-    const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 50;
-    return this.inventoryService.getInventoryByBranch(branchId, orgId, pageNum, limitNum);
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    return this.inventoryService.getInventoryByBranch(branchId, orgId, cursor, limitNum);
   }
 
   @Post('adjust')

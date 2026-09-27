@@ -17,7 +17,7 @@ export default function InventoryPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Pagination states
-  const [page, setPage] = useState(1);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
@@ -49,29 +49,30 @@ export default function InventoryPage() {
     }
   };
 
-  const loadInventory = async (branchId: string, pageNum: number) => {
+  const loadInventory = async (branchId: string, reset = false) => {
     if (!branchId) return;
     try {
-      if (pageNum === 1) setLoading(true);
-      else setLoadingMore(true);
+      if (reset) {
+        setLoading(true);
+        setCursor(null);
+      } else {
+        setLoadingMore(true);
+      }
 
-      const res = await fetchApi(`/inventory?branchId=${branchId}&page=${pageNum}&limit=20`);
+      const currentCursor = reset ? null : cursor;
+      const cursorParam = currentCursor ? `&cursor=${currentCursor}` : '';
+      const res = await fetchApi(`/inventory?branchId=${branchId}&limit=20${cursorParam}`);
       
       const newInventory = res.data || [];
       
-      if (pageNum === 1) {
+      if (reset) {
         setInventory(newInventory);
       } else {
         setInventory(prev => [...prev, ...newInventory]);
       }
       
-      setPage(pageNum);
-      
-      if (res.meta) {
-        setHasMore(pageNum < res.meta.totalPages);
-      } else {
-        setHasMore(newInventory.length === 20);
-      }
+      setCursor(res.nextCursor || null);
+      setHasMore(!!res.nextCursor);
     } catch (err) {
       console.error(err);
     } finally {
@@ -86,15 +87,15 @@ export default function InventoryPage() {
 
   useEffect(() => {
     if (selectedBranchId) {
-      loadInventory(selectedBranchId, 1);
+      loadInventory(selectedBranchId, true);
     }
   }, [selectedBranchId]);
   
   useEffect(() => {
     if (inView && hasMore && !loading && !loadingMore && selectedBranchId) {
-      loadInventory(selectedBranchId, page + 1);
+      loadInventory(selectedBranchId, false);
     }
-  }, [inView, hasMore, loading, loadingMore, page, selectedBranchId]);
+  }, [inView, hasMore, loading, loadingMore, cursor, selectedBranchId]);
 
   const handleAdjustStock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +112,7 @@ export default function InventoryPage() {
       });
       setIsModalOpen(false);
       setAdjustData({ productVariantId: '', quantityChange: '', type: 'ADJUSTMENT', reason: '' });
-      loadInventory(selectedBranchId, 1);
+      loadInventory(selectedBranchId, true);
     } catch (err) {
       console.error(err);
     }

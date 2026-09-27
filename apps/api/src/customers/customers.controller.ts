@@ -27,13 +27,12 @@ export class CustomersController {
   findAll(
     @Request() req: any, 
     @Query('search') search?: string,
-    @Query('page') page?: string,
+    @Query('cursor') cursor?: string,
     @Query('limit') limit?: string
   ) {
     const orgId = req.headers['x-organization-id'];
-    const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 50;
-    return this.customersService.findAll(orgId, search, pageNum, limitNum);
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    return this.customersService.findAll(orgId, search, cursor, limitNum);
   }
 
   @Get(':id')

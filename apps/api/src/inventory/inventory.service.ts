@@ -7,7 +7,7 @@ import { AdjustStockDto, TransactionType } from './dto/inventory.dto';
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
-  async getInventoryByBranch(branchId: string, organizationId: string, page = 1, limit = 50) {
+  async getInventoryByBranch(branchId: string, organizationId: string, cursor?: string, limit = 20) {
     // Verify branch belongs to organization
     const branch = await this.prisma.branch.findFirst({
       where: { id: branchId, organizationId },
@@ -17,31 +17,27 @@ export class InventoryService {
       throw new NotFoundException('Branch not found');
     }
 
-    const skip = (page - 1) * limit;
-
-    const [data, total] = await Promise.all([
-      this.prisma.inventory.findMany({
-        where: { branchId },
-        include: {
-          productVariant: {
-            include: { product: true },
-          },
+    const data = await this.prisma.inventory.findMany({
+      where: { branchId },
+      include: {
+        productVariant: {
+          include: { product: true },
         },
-        orderBy: { updatedAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.inventory.count({ where: { branchId } }),
-    ]);
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: limit + 1,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    });
+
+    let nextCursor: string | null = null;
+    if (data.length > limit) {
+      const nextItem = data.pop();
+      nextCursor = nextItem!.id;
+    }
 
     return {
       data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      nextCursor,
     };
   }
 
