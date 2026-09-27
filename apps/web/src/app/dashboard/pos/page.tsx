@@ -251,6 +251,16 @@ export default function POSPage() {
           checkoutLoading={checkoutLoading}
           receipt={receipt}
           closeReceipt={closeReceipt}
+          cartItems={cart.map(item => ({
+            productVariantId: item.variantId,
+            quantity: item.quantity
+          }))}
+          branchId={selectedBranchId}
+          customerId={selectedCustomerId || undefined}
+          onRazorpaySuccess={(rzpReceipt) => {
+            setReceipt(rzpReceipt);
+            setCart([]);
+          }}
         />
       )}
     </div>

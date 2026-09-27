@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsBoolean, IsDateString, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsDateString, IsEnum, IsArray, ValidateNested, IsInt, IsNumber, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum PaymentProvider {
@@ -50,12 +51,69 @@ export class UpsertPaymentGatewayDto {
   isTestMode!: boolean;
 }
 
-export class PaymentIntentDto {
+class RazorpayCheckoutItemDto {
   @ApiProperty()
   @IsString()
-  saleId!: string;
+  productVariantId!: string;
+
+  @ApiProperty()
+  @IsInt()
+  @Min(1)
+  quantity!: number;
+}
+
+export class CreateRazorpayOrderDto {
+  @ApiProperty()
+  @IsString()
+  branchId!: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  customerId?: string;
+
+  @ApiProperty({ type: [RazorpayCheckoutItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RazorpayCheckoutItemDto)
+  items!: RazorpayCheckoutItemDto[];
+
+  @ApiProperty({ required: false, default: 0 })
+  @IsNumber()
+  @IsOptional()
+  discountAmount?: number;
+}
+
+export class VerifyRazorpayPaymentDto {
+  @ApiProperty()
+  @IsString()
+  razorpay_order_id!: string;
 
   @ApiProperty()
   @IsString()
-  method!: string; // 'UPI' | 'CARD'
+  razorpay_payment_id!: string;
+
+  @ApiProperty()
+  @IsString()
+  razorpay_signature!: string;
+
+  @ApiProperty()
+  @IsString()
+  branchId!: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  customerId?: string;
+
+  @ApiProperty({ type: [RazorpayCheckoutItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RazorpayCheckoutItemDto)
+  items!: RazorpayCheckoutItemDto[];
+
+  @ApiProperty({ required: false, default: 0 })
+  @IsNumber()
+  @IsOptional()
+  discountAmount?: number;
 }

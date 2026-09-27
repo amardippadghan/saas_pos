@@ -1,7 +1,9 @@
 import { FormEvent, useState, useEffect } from 'react';
-import { Banknote, CreditCard, Smartphone, Download } from 'lucide-react';
+import { Banknote, Printer, Loader2 } from 'lucide-react';
 import { Modal } from '../../../../components/ui/modal';
 import { Button } from '../../../../components/ui/button';
+import { useRouter } from 'next/navigation';
+import { fetchApi } from '../../../../lib/api';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -13,71 +15,150 @@ interface CheckoutModalProps {
   checkoutLoading: boolean;
   receipt: any;
   closeReceipt: () => void;
+  // Razorpay props
+  cartItems: { productVariantId: string; quantity: number }[];
+  branchId: string;
+  customerId?: string;
+  onRazorpaySuccess: (receipt: any) => void;
+}
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
 }
 
 export default function CheckoutModal({
   isOpen, onClose, grandTotal,
   paymentMethod, setPaymentMethod,
   handleCheckout, checkoutLoading,
-  receipt, closeReceipt
+  receipt, closeReceipt,
+  cartItems, branchId, customerId,
+  onRazorpaySuccess
 }: CheckoutModalProps) {
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
-  const [paymentIntent, setPaymentIntent] = useState<any>(null);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
-  // When a receipt is generated, if the payment method is UPI/CARD, intercept and show Gateway
+  const router = useRouter();
+  const [razorpayEnabled, setRazorpayEnabled] = useState(false);
+  const [razorpayLoading, setRazorpayLoading] = useState(false);
+  const [razorpayError, setRazorpayError] = useState('');
+
+  // On mount, check if Razorpay is enabled for this organization
   useEffect(() => {
-    if (receipt && (paymentMethod === 'UPI' || paymentMethod === 'CARD') && !paymentIntent && !paymentConfirmed) {
-      initiateGateway();
-    } else if (receipt && paymentMethod === 'CASH') {
-      setPaymentConfirmed(true);
-    }
-  }, [receipt, paymentMethod, paymentIntent, paymentConfirmed]);
-
-  const initiateGateway = async () => {
-    setIsInitiatingPayment(true);
-    try {
-      const { fetchApi } = await import('../../../../lib/api');
-      const intent = await fetchApi('/payments/intent', {
-        method: 'POST',
-        body: JSON.stringify({ saleId: receipt.saleId, method: paymentMethod })
-      });
-      setPaymentIntent(intent);
-    } catch (err: any) {
-      console.error(err);
-      alert('Payment Gateway Error: ' + err.message + '\n\nPlease configure Razorpay/PhonePe in Settings first.');
-    } finally {
-      setIsInitiatingPayment(false);
-    }
-  };
-
-  const generatePDF = async () => {
-    setIsGeneratingPdf(true);
-    try {
-      const element = document.getElementById('receipt-content');
-      if (element) {
-        // @ts-ignore - html2pdf doesn't have types installed
-        const html2pdf = (await import('html2pdf.js')).default;
-        const opt: any = {
-          margin: 0,
-          filename: `Receipt-${receipt.receiptNumber}.pdf`,
-          image: { type: 'jpeg', quality: 1 },
-          html2canvas: { scale: 2 },
-          jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' }
-        };
-        await html2pdf().set(opt).from(element).save();
+    const checkRazorpay = async () => {
+      try {
+        const config = await fetchApi('/payments/razorpay/config');
+        if (config.enabled) {
+          setRazorpayEnabled(true);
+        }
+      } catch {
+        // Razorpay not configured, that's fine
       }
-    } catch (err) {
-      console.error('Failed to generate PDF:', err);
-    } finally {
-      setIsGeneratingPdf(false);
+    };
+    checkRazorpay();
+  }, []);
+
+  // Load Razorpay checkout.js script
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayCheckout = async (e: FormEvent) => {
+    e.preventDefault();
+    setRazorpayLoading(true);
+    setRazorpayError('');
+
+    try {
+      // 1. Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        setRazorpayError('Failed to load Razorpay. Please check your internet connection.');
+        setRazorpayLoading(false);
+        return;
+      }
+
+      // 2. Create order on our backend
+      const orderData = await fetchApi('/payments/razorpay/create-order', {
+        method: 'POST',
+        body: JSON.stringify({
+          branchId,
+          customerId: customerId || undefined,
+          items: cartItems,
+        }),
+      });
+
+      // 3. Open Razorpay popup
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amountInPaise,
+        currency: orderData.currency,
+        name: 'POS Checkout',
+        description: 'Purchase Payment',
+        order_id: orderData.orderId,
+        handler: async (response: any) => {
+          // 4. On successful payment, verify and place order
+          try {
+            const result = await fetchApi('/payments/razorpay/verify', {
+              method: 'POST',
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                branchId,
+                customerId: customerId || undefined,
+                items: cartItems,
+              }),
+            });
+            onRazorpaySuccess(result.receipt);
+          } catch (err: any) {
+            setRazorpayError(err.message || 'Payment verification failed');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setRazorpayLoading(false);
+          },
+        },
+        theme: {
+          color: '#3b82f6',
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (response: any) => {
+        setRazorpayError(`Payment failed: ${response.error.description}`);
+        setRazorpayLoading(false);
+      });
+      rzp.open();
+    } catch (err: any) {
+      setRazorpayError(err.message || 'Failed to initiate payment');
+      setRazorpayLoading(false);
     }
   };
+
+  const handleFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (paymentMethod === 'RAZORPAY') {
+      handleRazorpayCheckout(e);
+    } else {
+      handleCheckout(e);
+    }
+  };
+
+  const isProcessing = checkoutLoading || razorpayLoading;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Checkout">
       {!receipt ? (
-        <form onSubmit={handleCheckout} className="space-y-6">
+        <form onSubmit={handleFormSubmit} className="space-y-6">
           <div className="text-center space-y-2 mb-6">
             <p className="text-gray-500">Total Amount Due</p>
             <p className="text-4xl font-extrabold text-gray-900 dark:text-white">${grandTotal.toFixed(2)}</p>
@@ -85,7 +166,7 @@ export default function CheckoutModal({
           
           <div className="space-y-3">
             <label className="text-sm font-medium">Select Payment Method</label>
-            <div className="grid grid-cols-1 gap-3">
+            <div className={`grid ${razorpayEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('CASH')}
@@ -94,60 +175,43 @@ export default function CheckoutModal({
                 <Banknote size={24} />
                 <span className="font-bold">Cash</span>
               </button>
-              {/* Feature flagged: Not live yet
-              <button 
-                type="button"
-                onClick={() => setPaymentMethod('CARD')}
-                className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ${paymentMethod === 'CARD' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
-              >
-                <CreditCard size={24} />
-                <span className="font-bold">Card</span>
-              </button>
-              <button 
-                type="button"
-                onClick={() => setPaymentMethod('UPI')}
-                className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ${paymentMethod === 'UPI' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
-              >
-                <Smartphone size={24} />
-                <span className="font-bold">UPI</span>
-              </button>
-              */}
+
+              {razorpayEnabled && (
+                <button 
+                  type="button"
+                  onClick={() => setPaymentMethod('RAZORPAY')}
+                  className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ${paymentMethod === 'RAZORPAY' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 9.76L14.16 22H9.73L13.58 15.22L10.28 4H14.25L16.47 12.18L22 9.76Z" fill="currentColor"/>
+                    <path d="M7.32 4H3L9.12 22H13.44L7.32 4Z" fill="currentColor" opacity="0.7"/>
+                  </svg>
+                  <span className="font-bold">Razorpay</span>
+                </button>
+              )}
             </div>
           </div>
 
-          <Button type="submit" className="w-full h-12 text-lg" disabled={checkoutLoading || isInitiatingPayment}>
-            {checkoutLoading || isInitiatingPayment ? 'Processing...' : 'Complete Payment'}
+          {razorpayError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <p className="text-sm text-red-600 dark:text-red-400">{razorpayError}</p>
+            </div>
+          )}
+
+          <Button type="submit" className="w-full h-12 text-lg" disabled={isProcessing}>
+            {isProcessing ? (
+              <span className="flex items-center gap-2">
+                <Loader2 size={18} className="animate-spin" />
+                Processing...
+              </span>
+            ) : paymentMethod === 'RAZORPAY' ? (
+              'Pay with Razorpay'
+            ) : (
+              'Complete Payment'
+            )}
           </Button>
         </form>
-      ) : !paymentConfirmed && paymentIntent ? (
-        <div className="text-center space-y-6 py-6">
-          <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Smartphone size={32} />
-          </div>
-          <div>
-            <h3 className="text-2xl font-bold">Pay via {paymentIntent.provider}</h3>
-            <p className="text-gray-500 mt-2">Scan QR or complete payment in the popup window.</p>
-          </div>
-          
-          <div className="p-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800">
-            <p className="font-mono text-sm text-gray-500 mb-2">Order ID: {paymentIntent.orderId}</p>
-            <p className="text-3xl font-bold mb-4">₹{paymentIntent.amount.toFixed(2)}</p>
-            {/* Mock QR Code area */}
-            <div className="w-48 h-48 bg-white mx-auto border shadow-sm rounded-lg flex items-center justify-center p-2 mb-4">
-               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=mock@upi&pn=POS&am=${paymentIntent.amount}&cu=INR`} alt="UPI QR" className="w-full h-full object-contain opacity-70" />
-            </div>
-            <p className="text-xs text-gray-400">Waiting for payment confirmation via webhook...</p>
-          </div>
-
-          <Button 
-            onClick={() => setPaymentConfirmed(true)} 
-            className="w-full bg-green-600 hover:bg-green-700"
-          >
-            Simulate Payment Success
-          </Button>
-          <Button onClick={closeReceipt} className="w-full" variant="ghost">Cancel</Button>
-        </div>
-      ) : paymentConfirmed && receipt ? (
+      ) : (
         <div className="text-center space-y-6 py-6">
           <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
@@ -159,68 +223,16 @@ export default function CheckoutModal({
           
           <div className="space-y-3">
             <Button 
-              onClick={generatePDF} 
-              disabled={isGeneratingPdf}
+              onClick={() => router.push(`/dashboard/orders/${receipt.saleId}/receipt`)} 
               className="w-full bg-blue-600 text-white hover:bg-blue-700"
             >
-              <Download size={18} className="mr-2" /> 
-              {isGeneratingPdf ? 'Generating PDF...' : 'Download PDF Receipt'}
+              <Printer size={18} className="mr-2" /> 
+              Print / Download Receipt
             </Button>
             <Button onClick={closeReceipt} className="w-full" variant="outline">Start New Sale</Button>
           </div>
-
-          {/* Hidden Receipt Content for PDF */}
-          <div className="absolute left-[-9999px] top-0">
-            <div id="receipt-content" className="p-8 text-black bg-white font-mono text-sm" style={{ width: '80mm' }}>
-              <div className="text-center mb-6">
-                <h1 className="font-bold text-2xl mb-1">POS SaaS</h1>
-                <p className="text-xs text-gray-500">Sales Receipt</p>
-              </div>
-              
-              <div className="mb-4">
-                <p>Receipt: {receipt.receiptNumber}</p>
-                <p>Date: {new Date().toLocaleString()}</p>
-              </div>
-
-              <div className="border-b-2 border-black border-dashed pb-2 mb-2">
-                <div className="flex justify-between font-bold mb-2">
-                  <span>Item</span>
-                  <span>Total</span>
-                </div>
-                {receipt.cartSnapshot?.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between mb-1">
-                    <span className="pr-2">{item.quantity}x {item.name}</span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="border-b-2 border-black border-dashed pb-2 mb-2 space-y-1">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>${receipt.subtotalSnapshot?.toFixed(2)}</span>
-                </div>
-                {receipt.taxSnapshot?.map((tax: any, idx: number) => (
-                  <div key={idx} className="flex justify-between">
-                    <span>{tax.name}:</span>
-                    <span>${tax.calculatedAmount?.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-between font-bold text-lg mb-6">
-                <span>Total:</span>
-                <span>${receipt.totalSnapshot?.toFixed(2)}</span>
-              </div>
-
-              <div className="text-center text-xs">
-                <p>Thank you for your purchase!</p>
-                <p>Please come again</p>
-              </div>
-            </div>
-          </div>
         </div>
-      ) : null}
+      )}
     </Modal>
   );
 }

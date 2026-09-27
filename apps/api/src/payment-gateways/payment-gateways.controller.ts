@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards, Request, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { PaymentGatewaysService } from './payment-gateways.service';
-import { UpsertPaymentGatewayDto, PaymentIntentDto } from './dto/payment-gateway.dto';
+import { UpsertPaymentGatewayDto, CreateRazorpayOrderDto, VerifyRazorpayPaymentDto } from './dto/payment-gateway.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
@@ -10,6 +10,8 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 @Controller('api/v1')
 export class PaymentGatewaysController {
   constructor(private readonly paymentGatewaysService: PaymentGatewaysService) {}
+
+  // ─── Settings CRUD (Admin only) ───────────────────────────────────────
 
   @Get('settings/payment-gateways')
   @ApiBearerAuth()
@@ -41,24 +43,35 @@ export class PaymentGatewaysController {
     return this.paymentGatewaysService.upsertSetting(orgId, dto);
   }
 
-  @Post('payments/intent')
+  // ─── Razorpay Checkout Flow ───────────────────────────────────────────
+
+  @Get('payments/razorpay/config')
+  @ApiBearerAuth()
+  @ApiHeader({ name: 'x-organization-id', required: true })
+  @UseGuards(JwtAuthGuard)
+  getRazorpayConfig(@Request() req: any) {
+    const orgId = req.headers['x-organization-id'];
+    return this.paymentGatewaysService.getActiveRazorpayConfig(orgId);
+  }
+
+  @Post('payments/razorpay/create-order')
   @ApiBearerAuth()
   @ApiHeader({ name: 'x-organization-id', required: true })
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions('create_sale')
-  createIntent(@Request() req: any, @Body() dto: PaymentIntentDto) {
+  @RequirePermissions('process_sales')
+  createRazorpayOrder(@Request() req: any, @Body() dto: CreateRazorpayOrderDto) {
     const orgId = req.headers['x-organization-id'];
-    return this.paymentGatewaysService.createIntent(orgId, dto);
+    return this.paymentGatewaysService.createRazorpayOrder(orgId, dto);
   }
 
-  @Post('payments/webhook/:provider')
-  // Webhooks are usually unauthenticated by JWT, but verified by a signature header
-  handleWebhook(
-    @Param('provider') provider: string, 
-    @Body() payload: any,
-    @Headers() headers: any
-  ) {
-    // We would pass headers to verify the signature (e.g., x-razorpay-signature)
-    return this.paymentGatewaysService.handleWebhook(provider.toUpperCase(), payload);
+  @Post('payments/razorpay/verify')
+  @ApiBearerAuth()
+  @ApiHeader({ name: 'x-organization-id', required: true })
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('process_sales')
+  verifyRazorpayPayment(@Request() req: any, @Body() dto: VerifyRazorpayPaymentDto) {
+    const orgId = req.headers['x-organization-id'];
+    const userId = req.user.id;
+    return this.paymentGatewaysService.verifyAndPlaceOrder(orgId, userId, dto);
   }
 }
