@@ -144,7 +144,7 @@ export const ReceiptPDF: React.FC<ReceiptPDFProps> = ({ sale }) => {
         <View style={styles.divider} />
 
         {sale.items?.map((item: any, idx: number) => {
-          const variantName = item.productVariant?.name !== 'Default' ? ` - ₹{item.productVariant?.name}` : '';
+          const variantName = item.productVariant?.name !== 'Default' ? ` - ${item.productVariant?.name}` : '';
           const name = `${item.productVariant?.product?.name || 'Item'}${variantName}`;
           return (
             <React.Fragment key={idx}>

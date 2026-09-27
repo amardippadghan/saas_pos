@@ -53,7 +53,7 @@ export default function ProductGrid({
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <button
             onClick={() => setSelectedCategoryId('all')}
-            className={`px-4 py-2 rounded-full whitespace-nowrap font-medium text-sm transition-all ₹{
+            className={`px-4 py-2 rounded-full whitespace-nowrap font-medium text-sm transition-all ${
               selectedCategoryId === 'all' 
               ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md' 
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -65,7 +65,7 @@ export default function ProductGrid({
             <button
               key={cat.id}
               onClick={() => setSelectedCategoryId(cat.id)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap font-medium text-sm transition-all ₹{
+              className={`px-4 py-2 rounded-full whitespace-nowrap font-medium text-sm transition-all ${
                 selectedCategoryId === cat.id 
                 ? 'bg-blue-600 text-white shadow-md' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'

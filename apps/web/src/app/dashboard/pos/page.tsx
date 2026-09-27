@@ -142,7 +142,7 @@ export default function POSPage() {
       }
       return [...prev, {
         variantId: variant.id,
-        name: `${product.name} - ₹{variant.name}`,
+        name: `${product.name} - ${variant.name}`,
         price: Number(variant.sellingPrice),
         quantity: 1
       }];

@@ -142,7 +142,7 @@ export default function CheckoutModal({
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', (response: any) => {
-        setRazorpayError(`Payment failed: ₹{response.error.description}`);
+        setRazorpayError(`Payment failed: ${response.error.description}`);
         setRazorpayLoading(false);
       });
       rzp.open();
