@@ -23,22 +23,24 @@ export default function PaymentSettingsPage() {
   }, [provider]);
 
   const loadSettings = async (selectedProvider: string) => {
+    // Immediately set to default to avoid overwriting wrong provider if fetch fails
+    setSettings({
+      provider: selectedProvider,
+      apiKey: '',
+      apiSecret: '',
+      merchantId: '',
+      isActive: false,
+      isTestMode: true,
+    });
+
     try {
       const data = await fetchApi(`/settings/payment-gateways/${selectedProvider}`);
       if (data) {
         setSettings(data);
       }
     } catch (err: any) {
-      if (err.message.includes('not found')) {
-        setSettings({
-          provider: selectedProvider,
-          apiKey: '',
-          apiSecret: '',
-          merchantId: '',
-          isActive: false,
-          isTestMode: true,
-        });
-      }
+      // It will throw 404 if not found, which is fine since we already set defaults above.
+      console.error(err);
     }
   };
 
