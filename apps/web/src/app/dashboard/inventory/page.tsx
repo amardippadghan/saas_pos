@@ -6,7 +6,8 @@ import { Input } from '../../../components/ui/input';
 import { Select } from '../../../components/ui/select';
 import { Modal } from '../../../components/ui/modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { Plus, Boxes } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
+import { useInView } from 'react-intersection-observer';
 
 export default function InventoryPage() {
   const [branches, setBranches] = useState<any[]>([]);
@@ -14,6 +15,16 @@ export default function InventoryPage() {
   const [inventory, setInventory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: '100px',
+  });
 
   // Modal State
   const [adjustData, setAdjustData] = useState({
@@ -38,16 +49,34 @@ export default function InventoryPage() {
     }
   };
 
-  const loadInventory = async (branchId: string) => {
+  const loadInventory = async (branchId: string, pageNum: number) => {
     if (!branchId) return;
     try {
-      setLoading(true);
-      const data = await fetchApi(`/inventory?branchId=${branchId}`);
-      setInventory(data);
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      const res = await fetchApi(`/inventory?branchId=${branchId}&page=${pageNum}&limit=20`);
+      
+      const newInventory = res.data || [];
+      
+      if (pageNum === 1) {
+        setInventory(newInventory);
+      } else {
+        setInventory(prev => [...prev, ...newInventory]);
+      }
+      
+      setPage(pageNum);
+      
+      if (res.meta) {
+        setHasMore(pageNum < res.meta.totalPages);
+      } else {
+        setHasMore(newInventory.length === 20);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -57,9 +86,15 @@ export default function InventoryPage() {
 
   useEffect(() => {
     if (selectedBranchId) {
-      loadInventory(selectedBranchId);
+      loadInventory(selectedBranchId, 1);
     }
   }, [selectedBranchId]);
+  
+  useEffect(() => {
+    if (inView && hasMore && !loading && !loadingMore && selectedBranchId) {
+      loadInventory(selectedBranchId, page + 1);
+    }
+  }, [inView, hasMore, loading, loadingMore, page, selectedBranchId]);
 
   const handleAdjustStock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +111,7 @@ export default function InventoryPage() {
       });
       setIsModalOpen(false);
       setAdjustData({ productVariantId: '', quantityChange: '', type: 'ADJUSTMENT', reason: '' });
-      loadInventory(selectedBranchId);
+      loadInventory(selectedBranchId, 1);
     } catch (err) {
       console.error(err);
     }
@@ -114,11 +149,11 @@ export default function InventoryPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={4} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600"/></TableCell></TableRow>
             ) : !selectedBranchId ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-gray-500">Please select a branch.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-gray-500 py-8">Please select a branch.</TableCell></TableRow>
             ) : inventory.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-gray-500">No inventory records found. Products need to be added to inventory first.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-gray-500 py-8">No inventory records found. Products need to be added to inventory first.</TableCell></TableRow>
             ) : (
               inventory.map((item) => (
                 <TableRow key={item.id}>
@@ -135,10 +170,19 @@ export default function InventoryPage() {
             )}
           </TableBody>
         </Table>
+        
+        {/* Infinite Scroll Trigger */}
+        {!loading && hasMore && selectedBranchId && (
+          <div ref={ref} className="py-6 flex justify-center">
+            {loadingMore ? (
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            ) : (
+              <span className="text-sm text-gray-400">Scroll for more...</span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Since you can only adjust existing inventory in this simple view, we populate the select with current inventory items. 
-          A more robust system would let you select ANY product variant across the company to add new inventory. */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Adjust Stock">
         <form onSubmit={handleAdjustStock} className="space-y-4">
           <Select 

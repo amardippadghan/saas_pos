@@ -6,8 +6,9 @@ import { Input } from '../../../components/ui/input';
 import { Select } from '../../../components/ui/select';
 import { Modal } from '../../../components/ui/modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { Plus, Edit2, Trash2, X, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Eye, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useInView } from 'react-intersection-observer';
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -17,31 +18,69 @@ export default function ProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
+  // Pagination states
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: '100px',
+  });
+  
   // Form State
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [variants, setVariants] = useState<any[]>([{ name: '', sku: '', price: 0, costPrice: 0 }]);
 
-  const loadData = async () => {
+  const loadData = async (reset = false) => {
     try {
-      setLoading(true);
+      if (reset) {
+        setLoading(true);
+        setCursor(null);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const currentCursor = reset ? null : cursor;
+      const cursorParam = currentCursor ? `&cursor=${currentCursor}` : '';
+      
       const [productsData, categoriesData] = await Promise.all([
-        fetchApi('/products?limit=100'),
-        fetchApi('/categories')
+        fetchApi(`/products?limit=20${cursorParam}`),
+        reset ? fetchApi('/categories') : Promise.resolve(null)
       ]);
-      setProducts(productsData.data || []);
-      setCategories(categoriesData);
+      
+      if (categoriesData) {
+        setCategories(categoriesData);
+      }
+
+      const newProducts = productsData.data || [];
+      if (reset) {
+        setProducts(newProducts);
+      } else {
+        setProducts(prev => [...prev, ...newProducts]);
+      }
+
+      setCursor(productsData.nextCursor || null);
+      setHasMore(!!productsData.nextCursor);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, []);
+
+  useEffect(() => {
+    if (inView && hasMore && !loading && !loadingMore) {
+      loadData(false);
+    }
+  }, [inView, hasMore, loading, loadingMore]);
 
   const handleAddVariant = () => {
     setVariants([...variants, { name: '', sku: '', price: 0, costPrice: 0 }]);
@@ -152,10 +191,10 @@ export default function ProductsPage() {
           </TableHeader>
           <TableBody>
             {loading && (
-              <TableRow><TableCell colSpan={4} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600"/></TableCell></TableRow>
             )}
             {!loading && products.length === 0 && (
-              <TableRow><TableCell colSpan={4} className="text-center text-gray-500">No products found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-gray-500 py-8">No products found.</TableCell></TableRow>
             )}
             {!loading && products.length > 0 && products?.map((product) => (
                 <TableRow key={product.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => router.push(`/dashboard/products/${product.id}`)}>
@@ -187,6 +226,17 @@ export default function ProductsPage() {
             }
           </TableBody>
         </Table>
+        
+        {/* Infinite Scroll Trigger */}
+        {!loading && hasMore && (
+          <div ref={ref} className="py-6 flex justify-center">
+            {loadingMore ? (
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            ) : (
+              <span className="text-sm text-gray-400">Scroll for more...</span>
+            )}
+          </div>
+        )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingId ? "Edit Product" : "Add New Product"}>

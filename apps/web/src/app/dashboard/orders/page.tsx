@@ -2,28 +2,64 @@
 import { useEffect, useState } from 'react';
 import { fetchApi } from '../../../lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { ReceiptText, Eye } from 'lucide-react';
+import { ReceiptText, Eye, Loader2 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useRouter } from 'next/navigation';
+import { useInView } from 'react-intersection-observer';
 
 export default function OrdersPage() {
   const router = useRouter();
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: '100px',
+  });
 
   useEffect(() => {
-    loadSales();
+    loadSales(1);
   }, []);
 
-  const loadSales = async () => {
+  useEffect(() => {
+    if (inView && hasMore && !loading && !loadingMore) {
+      loadSales(page + 1);
+    }
+  }, [inView, hasMore, loading, loadingMore, page]);
+
+  const loadSales = async (pageNum: number) => {
     try {
-      setLoading(true);
-      const data = await fetchApi('/sales');
-      setSales(data);
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      const res = await fetchApi(`/sales?page=${pageNum}&limit=20`);
+      
+      const newSales = res.data || [];
+      
+      if (pageNum === 1) {
+        setSales(newSales);
+      } else {
+        setSales(prev => [...prev, ...newSales]);
+      }
+      
+      setPage(pageNum);
+      
+      if (res.meta) {
+        setHasMore(pageNum < res.meta.totalPages);
+      } else {
+        // Fallback if meta is missing
+        setHasMore(newSales.length === 20);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -58,9 +94,9 @@ export default function OrdersPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600"/></TableCell></TableRow>
             ) : sales.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-gray-500">No sales recorded yet.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No sales recorded yet.</TableCell></TableRow>
             ) : (
               sales.map(sale => (
                 <TableRow key={sale.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => router.push(`/dashboard/orders/${sale.id}`)}>
@@ -91,6 +127,17 @@ export default function OrdersPage() {
             )}
           </TableBody>
         </Table>
+        
+        {/* Infinite Scroll Trigger */}
+        {!loading && hasMore && (
+          <div ref={ref} className="py-6 flex justify-center">
+            {loadingMore ? (
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            ) : (
+              <span className="text-sm text-gray-400">Scroll for more...</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

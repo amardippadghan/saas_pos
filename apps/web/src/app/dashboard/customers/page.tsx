@@ -5,8 +5,9 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Modal } from '../../../components/ui/modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { Plus, Edit2, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useInView } from 'react-intersection-observer';
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -16,21 +17,55 @@ export default function CustomersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '' });
 
-  const loadCustomers = async () => {
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: '100px',
+  });
+
+  const loadCustomers = async (pageNum: number) => {
     try {
-      setLoading(true);
-      const data = await fetchApi('/customers');
-      setCustomers(data);
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      const res = await fetchApi(`/customers?page=${pageNum}&limit=20`);
+      
+      const newCustomers = res.data || [];
+      
+      if (pageNum === 1) {
+        setCustomers(newCustomers);
+      } else {
+        setCustomers(prev => [...prev, ...newCustomers]);
+      }
+      
+      setPage(pageNum);
+      
+      if (res.meta) {
+        setHasMore(pageNum < res.meta.totalPages);
+      } else {
+        setHasMore(newCustomers.length === 20);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    loadCustomers();
+    loadCustomers(1);
   }, []);
+
+  useEffect(() => {
+    if (inView && hasMore && !loading && !loadingMore) {
+      loadCustomers(page + 1);
+    }
+  }, [inView, hasMore, loading, loadingMore, page]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +82,7 @@ export default function CustomersPage() {
         });
       }
       closeModal();
-      loadCustomers();
+      loadCustomers(1);
     } catch (err) {
       console.error(err);
     }
@@ -68,7 +103,7 @@ export default function CustomersPage() {
     if (!window.confirm('Are you sure you want to delete this customer?')) return;
     try {
       await fetchApi(`/customers/${id}`, { method: 'DELETE' });
-      loadCustomers();
+      loadCustomers(1);
     } catch (err) {
       console.error(err);
     }
@@ -104,9 +139,9 @@ export default function CustomersPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={4} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600"/></TableCell></TableRow>
             ) : customers.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-gray-500">No customers found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-gray-500 py-8">No customers found.</TableCell></TableRow>
             ) : (
               customers.map((customer) => (
                 <TableRow key={customer.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" onClick={() => router.push(`/dashboard/customers/${customer.id}`)}>
@@ -125,6 +160,17 @@ export default function CustomersPage() {
             )}
           </TableBody>
         </Table>
+        
+        {/* Infinite Scroll Trigger */}
+        {!loading && hasMore && (
+          <div ref={ref} className="py-6 flex justify-center">
+            {loadingMore ? (
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            ) : (
+              <span className="text-sm text-gray-400">Scroll for more...</span>
+            )}
+          </div>
+        )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingId ? "Edit Customer" : "Add New Customer"}>

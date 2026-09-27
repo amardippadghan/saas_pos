@@ -23,7 +23,7 @@ export default function CustomerSelect({ selectedCustomerId, setSelectedCustomer
     setLoading(true);
     try {
       const data = await fetchApi(`/customers${query ? `?search=${encodeURIComponent(query)}` : ''}`);
-      setCustomers(data);
+      setCustomers(data.data || data || []);
     } catch (err) {
       console.error('Failed to fetch customers', err);
     } finally {

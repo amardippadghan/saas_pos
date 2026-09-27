@@ -6,16 +6,33 @@ import { CheckoutDto } from './dto/sales.dto';
 export class SalesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(organizationId: string) {
-    return this.prisma.sale.findMany({
-      where: { organizationId },
-      include: {
-        customer: true,
-        branch: true,
-        receipts: true,
+  async findAll(organizationId: string, page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.sale.findMany({
+        where: { organizationId },
+        include: {
+          customer: true,
+          branch: true,
+          receipts: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.sale.count({ where: { organizationId } }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 
   async findOne(id: string, organizationId: string) {

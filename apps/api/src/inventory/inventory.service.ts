@@ -7,7 +7,7 @@ import { AdjustStockDto, TransactionType } from './dto/inventory.dto';
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
-  async getInventoryByBranch(branchId: string, organizationId: string) {
+  async getInventoryByBranch(branchId: string, organizationId: string, page = 1, limit = 50) {
     // Verify branch belongs to organization
     const branch = await this.prisma.branch.findFirst({
       where: { id: branchId, organizationId },
@@ -17,16 +17,32 @@ export class InventoryService {
       throw new NotFoundException('Branch not found');
     }
 
-    return this.prisma.inventory.findMany({
-      where: { branchId },
-      include: {
-        productVariant: {
-          include: {
-            product: true,
-          }
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.inventory.findMany({
+        where: { branchId },
+        include: {
+          productVariant: {
+            include: { product: true },
+          },
         },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.inventory.count({ where: { branchId } }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-    });
+    };
   }
 
   async adjustStock(dto: AdjustStockDto, organizationId: string, userId: string) {

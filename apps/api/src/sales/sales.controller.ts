@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Request, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Request, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { SalesService } from './sales.service';
 import { CheckoutDto } from './dto/sales.dto';
@@ -16,9 +16,15 @@ export class SalesController {
 
   @Get()
   @RequirePermissions('view_sales')
-  findAll(@Request() req: any) {
+  findAll(
+    @Request() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
     const orgId = req.headers['x-organization-id'];
-    return this.salesService.findAll(orgId);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.salesService.findAll(orgId, pageNum, limitNum);
   }
 
   @Get(':id')

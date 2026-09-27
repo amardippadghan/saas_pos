@@ -24,9 +24,16 @@ export class CustomersController {
   @Get()
   @RequirePermissions('view_customers')
   @ApiQuery({ name: 'search', required: false, type: String })
-  findAll(@Request() req: any, @Query('search') search?: string) {
+  findAll(
+    @Request() req: any, 
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
     const orgId = req.headers['x-organization-id'];
-    return this.customersService.findAll(orgId, search);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.customersService.findAll(orgId, search, pageNum, limitNum);
   }
 
   @Get(':id')

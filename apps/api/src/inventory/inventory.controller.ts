@@ -17,9 +17,16 @@ export class InventoryController {
   @Get()
   @RequirePermissions('view_inventory')
   @ApiQuery({ name: 'branchId', required: true })
-  getInventory(@Query('branchId') branchId: string, @Request() req: any) {
+  getInventory(
+    @Query('branchId') branchId: string, 
+    @Request() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
     const orgId = req.headers['x-organization-id'];
-    return this.inventoryService.getInventoryByBranch(branchId, orgId);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.inventoryService.getInventoryByBranch(branchId, orgId, pageNum, limitNum);
   }
 
   @Post('adjust')

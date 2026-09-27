@@ -15,22 +15,39 @@ export class CustomersService {
     });
   }
 
-  async findAll(organizationId: string, search?: string) {
-    return this.prisma.customer.findMany({
-      where: { 
-        organizationId, 
-        deletedAt: null,
-        ...(search ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
-            { phone: { contains: search, mode: 'insensitive' } },
-          ]
-        } : {})
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20, // limit to 20 for dropdown performance
-    });
+  async findAll(organizationId: string, search?: string, page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+    const whereClause: any = { 
+      organizationId, 
+      deletedAt: null,
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } },
+        ]
+      } : {})
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.customer.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.customer.count({ where: whereClause })
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   async findOne(id: string, organizationId: string) {
