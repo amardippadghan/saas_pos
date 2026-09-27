@@ -109,11 +109,62 @@ export default function OrderViewPage() {
             </div>
             
             <div className="mt-6 pt-4 border-t dark:border-gray-800">
-              <h4 className="text-sm font-semibold mb-2">Payment Methods</h4>
+              <h4 className="text-sm font-semibold mb-3">Payment Methods</h4>
               {sale.payments?.map((payment: any) => (
-                <div key={payment.id} className="flex justify-between text-sm">
-                  <span className="font-medium">{payment.method}</span>
-                  <span>${Number(payment.amount).toFixed(2)} ({payment.status})</span>
+                <div key={payment.id} className="mb-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold">{payment.method}</span>
+                    <span className="font-bold text-green-600 dark:text-green-400">
+                      ${Number(payment.amount).toFixed(2)} ({payment.status})
+                    </span>
+                  </div>
+                  {/* Rich Metadata Section */}
+                  {payment.metadata && payment.metadata.razorpay_payment_id && (
+                    <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs space-y-1.5 text-gray-500 dark:text-gray-400">
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-600 dark:text-gray-300">Transaction ID:</span>
+                        <span className="font-mono">{payment.metadata.razorpay_payment_id}</span>
+                      </div>
+                      
+                      {payment.metadata.method === 'card' && payment.metadata.card && (
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600 dark:text-gray-300">Card Details:</span>
+                          <span>{payment.metadata.card.network} {payment.metadata.card.type} ****{payment.metadata.card.last4}</span>
+                        </div>
+                      )}
+                      
+                      {payment.metadata.method === 'upi' && payment.metadata.upi && (
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600 dark:text-gray-300">UPI ID (VPA):</span>
+                          <span>{payment.metadata.upi.vpa}</span>
+                        </div>
+                      )}
+                      
+                      {payment.metadata.method === 'netbanking' && (
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600 dark:text-gray-300">Bank:</span>
+                          <span>{payment.metadata.bank}</span>
+                        </div>
+                      )}
+                      
+                      {payment.metadata.wallet && (
+                        <div className="flex justify-between">
+                          <span className="font-medium text-gray-600 dark:text-gray-300">Wallet:</span>
+                          <span>{payment.metadata.wallet}</span>
+                        </div>
+                      )}
+
+                      {(payment.metadata.email || payment.metadata.contact) && (
+                        <div className="flex justify-between pt-1 mt-1 border-t border-dashed border-gray-200 dark:border-gray-700">
+                          <span className="font-medium text-gray-600 dark:text-gray-300">Billed To:</span>
+                          <span className="text-right">
+                            {payment.metadata.email && <div>{payment.metadata.email}</div>}
+                            {payment.metadata.contact && <div>{payment.metadata.contact}</div>}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -180,7 +180,90 @@ export class PaymentGatewaysService {
       throw new BadRequestException('Payment verification failed: Invalid signature');
     }
 
-    // 3. Signature is valid — now process the checkout (same as cash flow)
+    // 3. Fetch full payment details from Razorpay API
+    const Razorpay = require('razorpay');
+    const razorpay = new Razorpay({
+      key_id: gateway.apiKey,
+      key_secret: gateway.apiSecret,
+    });
+
+    const paymentDetails = await razorpay.payments.fetch(dto.razorpay_payment_id);
+
+    // Extract the rich payment metadata
+    const paymentMetadata: Record<string, any> = {
+      // Core Razorpay IDs
+      razorpay_order_id: dto.razorpay_order_id,
+      razorpay_payment_id: dto.razorpay_payment_id,
+
+      // Payment method: card, upi, netbanking, wallet, emi, etc.
+      method: paymentDetails.method,
+      status: paymentDetails.status,
+
+      // Amount & currency
+      amount_paid: paymentDetails.amount / 100, // Convert from paise
+      currency: paymentDetails.currency,
+
+      // Razorpay fees & tax (what Razorpay charged you)
+      razorpay_fee: paymentDetails.fee ? paymentDetails.fee / 100 : null,
+      razorpay_tax: paymentDetails.tax ? paymentDetails.tax / 100 : null,
+
+      // Customer info captured by Razorpay
+      email: paymentDetails.email || null,
+      contact: paymentDetails.contact || null,
+
+      // Acquirer data (bank transaction ID, RRN, auth code)
+      acquirer_data: paymentDetails.acquirer_data || null,
+
+      // Error info (if any partial failure)
+      error_code: paymentDetails.error_code || null,
+      error_description: paymentDetails.error_description || null,
+    };
+
+    // Card-specific details
+    if (paymentDetails.method === 'card' && paymentDetails.card) {
+      paymentMetadata.card = {
+        last4: paymentDetails.card.last4,
+        network: paymentDetails.card.network,       // Visa, Mastercard, RuPay, etc.
+        type: paymentDetails.card.type,             // credit, debit, prepaid
+        issuer: paymentDetails.card.issuer,         // Issuing bank
+        international: paymentDetails.card.international,
+        emi: paymentDetails.card.emi || false,
+        sub_type: paymentDetails.card.sub_type,     // consumer, business, etc.
+      };
+    }
+
+    // UPI-specific details
+    if (paymentDetails.method === 'upi') {
+      paymentMetadata.upi = {
+        vpa: paymentDetails.vpa,                    // e.g. user@paytm
+        payer_account_type: paymentDetails.upi?.payer_account_type || null,
+      };
+    }
+
+    // Netbanking-specific details
+    if (paymentDetails.method === 'netbanking') {
+      paymentMetadata.bank = paymentDetails.bank;    // Bank code like HDFC, ICIC, SBIN
+    }
+
+    // Wallet-specific details
+    if (paymentDetails.method === 'wallet') {
+      paymentMetadata.wallet = paymentDetails.wallet; // e.g. paytm, phonepe, freecharge
+    }
+
+    // Determine a human-readable payment method string for the Payment.method column
+    let methodLabel = 'RAZORPAY';
+    if (paymentDetails.method === 'card') {
+      const cardType = paymentDetails.card?.type || 'card';
+      methodLabel = `CARD (${cardType.toUpperCase()} - ${paymentDetails.card?.network || ''} ****${paymentDetails.card?.last4 || ''})`;
+    } else if (paymentDetails.method === 'upi') {
+      methodLabel = `UPI (${paymentDetails.vpa || ''})`;
+    } else if (paymentDetails.method === 'netbanking') {
+      methodLabel = `NETBANKING (${paymentDetails.bank || ''})`;
+    } else if (paymentDetails.method === 'wallet') {
+      methodLabel = `WALLET (${paymentDetails.wallet || ''})`;
+    }
+
+    // 4. Signature & payment verified — now process the checkout
     return this.prisma.$transaction(async (tx: any) => {
       // Verify branch
       const branch = await tx.branch.findFirst({
@@ -292,14 +375,11 @@ export class PaymentGatewaysService {
           payments: {
             create: [{
               amount: grandTotal,
-              method: 'RAZORPAY',
+              method: methodLabel,
               status: 'COMPLETED',
               transactionId: dto.razorpay_payment_id,
               provider: 'RAZORPAY',
-              metadata: {
-                razorpay_order_id: dto.razorpay_order_id,
-                razorpay_payment_id: dto.razorpay_payment_id,
-              },
+              metadata: paymentMetadata,
             }],
           },
         },
