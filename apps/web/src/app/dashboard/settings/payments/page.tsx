@@ -63,7 +63,7 @@ export default function PaymentSettingsPage() {
     <div className="p-8 max-w-2xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Payment Gateways</h1>
-        <p className="text-gray-500 mt-1">Configure your payment providers like Razorpay and PhonePe.</p>
+        <p className="text-gray-500 mt-1">Configure your payment providers like Razorpay.</p>
       </div>
 
       <div className="flex gap-4 border-b dark:border-gray-800 pb-4">
@@ -73,12 +73,14 @@ export default function PaymentSettingsPage() {
         >
           Razorpay
         </button>
+        {/* PhonePe support coming soon
         <button 
           onClick={() => setProvider('PHONEPE')}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${provider === 'PHONEPE' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}
         >
           PhonePe
         </button>
+        */}
       </div>
 
       <form onSubmit={handleSave} className="space-y-6 bg-white dark:bg-gray-900 p-6 rounded-xl border dark:border-gray-800 shadow-sm">
@@ -142,6 +144,7 @@ export default function PaymentSettingsPage() {
             />
           </div>
 
+          {/* PhonePe support coming soon
           {provider === 'PHONEPE' && (
             <div>
               <label className="block text-sm font-medium mb-1">Merchant ID</label>
@@ -152,6 +155,7 @@ export default function PaymentSettingsPage() {
               />
             </div>
           )}
+          */}
         </div>
 
         <Button type="submit" disabled={loading} className="w-full h-12 mt-6">

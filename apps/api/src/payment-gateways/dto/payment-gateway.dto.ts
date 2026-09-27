@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export enum PaymentProvider {
   RAZORPAY = 'RAZORPAY',
-  PHONEPE = 'PHONEPE'
+  // PHONEPE = 'PHONEPE' // Coming soon
 }
 
 export class UpsertPaymentGatewayDto {
