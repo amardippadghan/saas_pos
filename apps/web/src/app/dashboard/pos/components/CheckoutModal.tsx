@@ -1,5 +1,6 @@
 import { FormEvent, useState, useEffect } from 'react';
-import { Banknote, Printer, Loader2 } from 'lucide-react';
+import { Banknote, Printer, Loader2, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Modal } from '../../../../components/ui/modal';
 import { Button } from '../../../../components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -40,20 +41,27 @@ export default function CheckoutModal({
   const [razorpayEnabled, setRazorpayEnabled] = useState(false);
   const [razorpayLoading, setRazorpayLoading] = useState(false);
   const [razorpayError, setRazorpayError] = useState('');
+  
+  const [upiEnabled, setUpiEnabled] = useState(false);
+  const [upiConfig, setUpiConfig] = useState<{upiId: string, payeeName: string} | null>(null);
 
-  // On mount, check if Razorpay is enabled for this organization
+  // On mount, check active payment methods
   useEffect(() => {
-    const checkRazorpay = async () => {
+    const checkGateways = async () => {
       try {
         const config = await fetchApi('/payments/razorpay/config');
-        if (config.enabled) {
-          setRazorpayEnabled(true);
+        if (config.enabled) setRazorpayEnabled(true);
+      } catch {}
+      
+      try {
+        const upiConfigData = await fetchApi('/payments/manual-upi/config');
+        if (upiConfigData.enabled) {
+          setUpiEnabled(true);
+          setUpiConfig({ upiId: upiConfigData.upiId, payeeName: upiConfigData.payeeName });
         }
-      } catch {
-        // Razorpay not configured, that's fine
-      }
+      } catch {}
     };
-    checkRazorpay();
+    checkGateways();
   }, []);
 
   // Load Razorpay checkout.js script
@@ -166,11 +174,11 @@ export default function CheckoutModal({
           
           <div className="space-y-3">
             <label className="text-sm font-medium">Select Payment Method</label>
-            <div className={`grid ₹{razorpayEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+            <div className={`grid ${razorpayEnabled && upiEnabled ? 'grid-cols-3' : razorpayEnabled || upiEnabled ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
               <button 
                 type="button"
                 onClick={() => setPaymentMethod('CASH')}
-                className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ₹{paymentMethod === 'CASH' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
+                className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ${paymentMethod === 'CASH' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
               >
                 <Banknote size={24} />
                 <span className="font-bold">Cash</span>
@@ -180,7 +188,7 @@ export default function CheckoutModal({
                 <button 
                   type="button"
                   onClick={() => setPaymentMethod('RAZORPAY')}
-                  className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ₹{paymentMethod === 'RAZORPAY' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
+                  className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ${paymentMethod === 'RAZORPAY' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22 9.76L14.16 22H9.73L13.58 15.22L10.28 4H14.25L16.47 12.18L22 9.76Z" fill="currentColor"/>
@@ -189,8 +197,33 @@ export default function CheckoutModal({
                   <span className="font-bold">Razorpay</span>
                 </button>
               )}
+
+              {upiEnabled && (
+                <button 
+                  type="button"
+                  onClick={() => setPaymentMethod('MANUAL_UPI')}
+                  className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl gap-2 transition-all ${paymentMethod === 'MANUAL_UPI' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}
+                >
+                  <QrCode size={24} />
+                  <span className="font-bold">UPI QR</span>
+                </button>
+              )}
             </div>
           </div>
+
+          {paymentMethod === 'MANUAL_UPI' && upiConfig && (
+            <div className="flex flex-col items-center justify-center p-6 border rounded-xl bg-gray-50 dark:bg-gray-800/50 space-y-4">
+              <p className="font-medium text-sm text-gray-500">Scan to Pay via any UPI App</p>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <QRCodeSVG 
+                  value={`upi://pay?pa=${upiConfig.upiId}&pn=${encodeURIComponent(upiConfig.payeeName)}&am=${grandTotal.toFixed(2)}&cu=INR`} 
+                  size={200} 
+                  level="Q" 
+                />
+              </div>
+              <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{upiConfig.upiId}</p>
+            </div>
+          )}
 
           {razorpayError && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
@@ -206,6 +239,8 @@ export default function CheckoutModal({
               </span>
             ) : paymentMethod === 'RAZORPAY' ? (
               'Pay with Razorpay'
+            ) : paymentMethod === 'MANUAL_UPI' ? (
+              'Mark as Paid'
             ) : (
               'Complete Payment'
             )}

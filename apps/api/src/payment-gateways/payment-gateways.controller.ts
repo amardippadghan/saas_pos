@@ -54,6 +54,15 @@ export class PaymentGatewaysController {
     return this.paymentGatewaysService.getActiveRazorpayConfig(orgId);
   }
 
+  @Get('payments/manual-upi/config')
+  @ApiBearerAuth()
+  @ApiHeader({ name: 'x-organization-id', required: true })
+  @UseGuards(JwtAuthGuard)
+  getManualUpiConfig(@Request() req: any) {
+    const orgId = req.headers['x-organization-id'];
+    return this.paymentGatewaysService.getActiveManualUpiConfig(orgId);
+  }
+
   @Post('payments/razorpay/create-order')
   @ApiBearerAuth()
   @ApiHeader({ name: 'x-organization-id', required: true })

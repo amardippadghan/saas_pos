@@ -72,6 +72,22 @@ export class PaymentGatewaysService {
     };
   }
 
+  async getActiveManualUpiConfig(organizationId: string) {
+    const setting = await this.prisma.paymentGatewaySetting.findFirst({
+      where: { organizationId, provider: 'MANUAL_UPI', isActive: true },
+    });
+
+    if (!setting || !setting.apiKey) {
+      return { enabled: false };
+    }
+
+    return {
+      enabled: true,
+      upiId: setting.apiKey, // e.g. "username@ybl"
+      payeeName: setting.merchantId || 'Store',
+    };
+  }
+
   /**
    * Create a Razorpay order using the Razorpay Orders API.
    * We calculate the amount server-side to prevent tampering.

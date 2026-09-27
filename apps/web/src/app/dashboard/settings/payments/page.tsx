@@ -63,7 +63,7 @@ export default function PaymentSettingsPage() {
     <div className="p-8 max-w-2xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Payment Gateways</h1>
-        <p className="text-gray-500 mt-1">Configure your payment providers like Razorpay.</p>
+        <p className="text-gray-500 mt-1">Configure your payment providers like Razorpay or Manual UPI.</p>
       </div>
 
       <div className="flex gap-4 border-b dark:border-gray-800 pb-4">
@@ -73,18 +73,18 @@ export default function PaymentSettingsPage() {
         >
           Razorpay
         </button>
-        {/* PhonePe support coming soon
         <button 
-          onClick={() => setProvider('PHONEPE')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${provider === 'PHONEPE' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}
+          onClick={() => setProvider('MANUAL_UPI')}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${provider === 'MANUAL_UPI' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}
         >
-          PhonePe
+          Manual UPI QR
         </button>
-        */}
       </div>
 
       <form onSubmit={handleSave} className="space-y-6 bg-white dark:bg-gray-900 p-6 rounded-xl border dark:border-gray-800 shadow-sm">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{provider} Configuration</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          {provider === 'MANUAL_UPI' ? 'Manual UPI Configuration' : `${provider} Configuration`}
+        </h2>
         
         {message && (
           <div className={`p-4 rounded-lg text-sm ${message.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
@@ -102,47 +102,61 @@ export default function PaymentSettingsPage() {
                 onChange={e => setSettings({...settings, isActive: e.target.checked})}
                 className="w-4 h-4 rounded text-blue-600"
               />
-              <span className="text-sm">Enable {provider} at checkout</span>
+              <span className="text-sm">Enable {provider === 'MANUAL_UPI' ? 'Manual UPI' : provider} at checkout</span>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Environment</label>
-            <div className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                checked={settings.isTestMode}
-                onChange={e => setSettings({...settings, isTestMode: e.target.checked})}
-                className="w-4 h-4 rounded text-blue-600"
-              />
-              <span className="text-sm">Test Mode (Sandbox)</span>
+          {provider !== 'MANUAL_UPI' && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Environment</label>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  checked={settings.isTestMode}
+                  onChange={e => setSettings({...settings, isTestMode: e.target.checked})}
+                  className="w-4 h-4 rounded text-blue-600"
+                />
+                <span className="text-sm">Test Mode (Sandbox)</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              {provider === 'RAZORPAY' ? 'Key ID' : 'Client ID'}
+              {provider === 'RAZORPAY' ? 'Key ID' : provider === 'MANUAL_UPI' ? 'UPI ID (VPA)' : 'Client ID'}
             </label>
             <Input 
               value={settings.apiKey || ''}
               onChange={e => setSettings({...settings, apiKey: e.target.value})}
-              placeholder="e.g. rzp_test_123456"
+              placeholder={provider === 'MANUAL_UPI' ? "e.g. username@ybl" : "e.g. rzp_test_123456"}
               required={settings.isActive}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              {provider === 'RAZORPAY' ? 'Key Secret' : 'Client Secret'}
-            </label>
-            <Input 
-              type="password"
-              value={settings.apiSecret || ''}
-              onChange={e => setSettings({...settings, apiSecret: e.target.value})}
-              placeholder="••••••••••••••••"
-              required={settings.isActive}
-            />
-          </div>
+          {provider === 'MANUAL_UPI' ? (
+            <div>
+              <label className="block text-sm font-medium mb-1">Payee Name (Business Name)</label>
+              <Input 
+                value={settings.merchantId || ''}
+                onChange={e => setSettings({...settings, merchantId: e.target.value})}
+                placeholder="e.g. My Retail Store"
+                required={settings.isActive}
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                {provider === 'RAZORPAY' ? 'Key Secret' : 'Client Secret'}
+              </label>
+              <Input 
+                type="password"
+                value={settings.apiSecret || ''}
+                onChange={e => setSettings({...settings, apiSecret: e.target.value})}
+                placeholder="••••••••••••••••"
+                required={settings.isActive}
+              />
+            </div>
+          )}
 
           {/* PhonePe support coming soon
           {provider === 'PHONEPE' && (

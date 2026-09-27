@@ -4,6 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export enum PaymentProvider {
   RAZORPAY = 'RAZORPAY',
+  MANUAL_UPI = 'MANUAL_UPI',
   // PHONEPE = 'PHONEPE' // Coming soon
 }
 
