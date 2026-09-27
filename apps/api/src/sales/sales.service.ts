@@ -197,6 +197,6 @@ export class SalesService {
         sale,
         receipt,
       };
-    });
+    }, { maxWait: 10000, timeout: 30000 });
   }
 }
