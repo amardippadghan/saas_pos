@@ -23,7 +23,11 @@ export class SalesService {
       where: { id, organizationId },
       include: {
         customer: true,
-        branch: true,
+        branch: {
+          include: {
+            organization: true
+          }
+        },
         receipts: true,
         items: {
           include: {

@@ -50,7 +50,7 @@ export default function OrderViewPage() {
             </span>
           </div>
         </div>
-        <Button className="gap-2" variant="outline" onClick={() => window.print()}>
+        <Button className="gap-2" variant="outline" onClick={() => router.push(`/dashboard/orders/${params.id}/receipt`)}>
           <Printer size={16} /> Print Receipt
         </Button>
       </div>
